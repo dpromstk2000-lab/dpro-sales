@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>DPRO SALES System Check</title>
+  <script src="config.js"></script>
+  <style>
+    :root{--navy:#102c49;--green:#0c8c66;--red:#c63c49;--amber:#a66500;--bg:#f3f7fa;--line:#dce5ec;--text:#17283d;--muted:#718195}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}.top{height:68px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 24px;gap:12px}.cube{width:38px;height:38px;border-radius:11px;background:#16ad82;display:grid;place-items:center;font-weight:900}.top strong{font-size:17px}.top small{display:block;opacity:.7;font-size:10px}
+    main{max-width:1100px;margin:auto;padding:24px}.head{display:flex;align-items:center;justify-content:space-between;gap:15px;margin-bottom:18px}h1{font-size:25px;margin:0 0 4px}.head p{margin:0;color:var(--muted);font-size:12px}.badge{background:#e7f7f1;color:#087251;padding:8px 12px;border-radius:999px;font-size:11px;font-weight:850}
+    .login,.panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 12px 30px rgba(16,44,73,.06)}.login{padding:18px;display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end;margin-bottom:18px}label{font-size:11px;color:var(--muted);font-weight:750;display:block;margin-bottom:6px}input{width:100%;height:44px;border:1px solid #cdd9e2;border-radius:11px;padding:0 12px;font-size:14px}button{height:44px;border:0;border-radius:11px;padding:0 18px;font-weight:800;cursor:pointer}.primary{background:var(--green);color:#fff}.secondary{background:#edf3f6;color:#20354e}
+    .health{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}.metric{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}.metric span{font-size:10px;color:var(--muted);display:block}.metric b{font-size:22px;display:block;margin-top:7px}.ok{color:var(--green)}.ng{color:var(--red)}.warn{color:var(--amber)}
+    .panel-head{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panel-head h2{font-size:15px;margin:0}.panel-body{padding:16px 18px}.checks{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.check{border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px}.state{font-weight:900}.counts{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}.count{background:#f4f7f9;border-radius:11px;padding:12px}.count span{font-size:10px;color:var(--muted);display:block}.count b{font-size:18px;display:block;margin-top:4px}pre{margin:0;background:#102238;color:#d7e7f5;border-radius:12px;padding:15px;overflow:auto;font-size:11px;line-height:1.6}.hidden{display:none}.error{background:#fff0f1;color:#9c2632;padding:12px;border-radius:11px;font-size:12px;margin-bottom:14px}
+    @media(max-width:760px){main{padding:16px}.login{grid-template-columns:1fr}.health{grid-template-columns:repeat(2,1fr)}.checks{grid-template-columns:1fr}.counts{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="cube">D</div><div><strong>DPRO SALES</strong><small>内部検査専用・オーナーメニュー非表示</small></div></header>
+  <main>
+    <div class="head"><div><h1>System Check</h1><p>本番施設・DB・Worker・Google Places・RLSを検査します。</p></div><div class="badge">本番営業環境</div></div>
+    <div id="error" class="error hidden"></div>
+    <form id="loginForm" class="login">
+      <div><label>施設コード</label><input id="facilityCode" required></div>
+      <div><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" required></div>
+      <button class="primary" type="submit">検査を実行</button>
+    </form>
+    <section id="result" class="hidden">
+      <div class="health">
+        <div class="metric"><span>総合状態</span><b id="overall">-</b></div>
+        <div class="metric"><span>Worker</span><b id="worker">-</b></div>
+        <div class="metric"><span>Database</span><b id="database">-</b></div>
+        <div class="metric"><span>Google Places</span><b id="places">-</b></div>
+      </div>
+      <div class="panel" style="margin-bottom:18px"><div class="panel-head"><h2>検査項目</h2><button id="rerun" class="secondary" type="button">再検査</button></div><div class="panel-body"><div id="checks" class="checks"></div></div></div>
+      <div class="panel" style="margin-bottom:18px"><div class="panel-head"><h2>登録件数</h2></div><div class="panel-body"><div id="counts" class="counts"></div></div></div>
+      <div class="panel"><div class="panel-head"><h2>詳細JSON</h2></div><div class="panel-body"><pre id="raw"></pre></div></div>
+    </section>
+  </main>
+  <script>
+    const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",defaultFacilityCode:"dpro_sales"};
+    let token="";
+    const $=s=>document.querySelector(s);
+    $("#facilityCode").value=CFG.defaultFacilityCode||"dpro_sales";
+    function error(message){$("#error").textContent=message;$("#error").classList.remove("hidden")}
+    function clearError(){$("#error").classList.add("hidden")}
+    async function json(url,options={}){const r=await fetch(CFG.apiBaseUrl+url,{...options,headers:{"Content-Type":"application/json",...(token?{Authorization:"Bearer "+token}:{}),...(options.headers||{})}});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.message||"通信に失敗しました");return d}
+    function mark(value){return value?'<span class="state ok">正常</span>':'<span class="state ng">異常</span>'}
+    async function runCheck(){
+      clearError();
+      const health=await json("/health?check=SALES12-"+Date.now());
+      const detail=await json("/api/system-check");
+      $("#result").classList.remove("hidden");
+      $("#overall").textContent=health.ok&&detail.ok?"正常":"要確認";$("#overall").className=health.ok&&detail.ok?"ok":"ng";
+      $("#worker").textContent=health.version||"-";$("#worker").className=health.version==="SALES-12-WORKER-20260804"?"ok":"ng";
+      $("#database").textContent=health.databaseVersion||"-";$("#database").className=health.databaseVersion==="SALES-12-DB-20260804"?"ok":"ng";
+      $("#places").textContent=health.googlePlacesConfigured?"接続済み":"未設定";$("#places").className=health.googlePlacesConfigured?"ok":"ng";
+      $("#checks").innerHTML=Object.entries(detail.checks||{}).map(([k,v])=>`<div class="check"><span>${k}</span>${mark(Boolean(v))}</div>`).join("");
+      const labels={staff:"担当者",products:"DPRO商品",campaigns:"キャンペーン",prospects:"営業先",activities:"活動履歴",nextActions:"次回予定",searchRuns:"検索履歴",searchResults:"検索候補",providerErrors:"APIエラー",queueItems:"営業キュー",scoreRules:"採点ルール",followUpRules:"フォロールール"};
+      $("#counts").innerHTML=Object.entries(detail.counts||{}).map(([k,v])=>`<div class="count"><span>${labels[k]||k}</span><b>${v}</b></div>`).join("");
+      $("#raw").textContent=JSON.stringify({health,systemCheck:detail},null,2);
+    }
+    $("#loginForm").addEventListener("submit",async e=>{e.preventDefault();clearError();try{const login=await json("/api/auth/login",{method:"POST",body:JSON.stringify({facilityCode:$("#facilityCode").value.trim(),adminCode:$("#adminCode").value})});token=login.token;await runCheck()}catch(err){error(err.message)}});
+    $("#rerun").addEventListener("click",()=>runCheck().catch(e=>error(e.message)));
+  </script>
+</body>
+</html>
