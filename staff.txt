@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0f233d">
-  <meta name="dpro-version" content="SALES-12-STAFF-R1-20260804">
+  <meta name="dpro-version" content="SALES-12-STAFF-R2-20260804">
   <title>DPRO SALES｜スマホ営業</title>
   <meta name="description" content="DPROシステム専用のスマホ営業・訪問記録・ルート画面">
   <script src="./config.js"></script>
@@ -77,13 +77,14 @@
       </section>
 
       <section id="viewSearch" class="view">
-        <div class="page-head"><div><h2>営業先を探す</h2><p>DPRO商品とエリアから新しい営業候補を検索します。</p></div></div>
+        <div class="page-head"><div><h2>営業先を探す</h2><p>エリア指定または現在地の近くから営業候補を検索します。</p></div></div>
         <form id="mobileSearchForm" class="search-panel">
           <div class="search-grid">
             <div class="field"><label>DPRO商品</label><select id="mobileSearchProduct" required></select></div>
-            <div class="field"><label>営業エリア</label><input id="mobileSearchArea" required placeholder="例：福岡県志免町" autocomplete="address-level2"></div>
+            <div class="field"><label>営業エリア（現在地検索では空欄可）</label><input id="mobileSearchArea" placeholder="例：福岡県志免町" autocomplete="address-level2"></div>
             <div class="field"><label>追加キーワード（任意）</label><input id="mobileSearchQuery" placeholder="例：宅配クリーニング"></div>
-            <label class="search-option"><input id="mobileUseLocation" type="checkbox"> 現在地を検索範囲の中心に使う</label>
+            <label class="search-option"><input id="mobileUseLocation" type="checkbox"> 現在地の近くを検索する（エリア入力不要）</label>
+            <div class="field"><label>現在地からの検索範囲</label><select id="mobileSearchRadius" disabled><option value="2000">約2km</option><option value="5000" selected>約5km</option><option value="10000">約10km</option><option value="20000">約20km</option></select></div>
             <button class="btn btn-primary btn-block" type="submit">⌕ Googleで営業先を検索</button>
           </div>
         </form>
@@ -162,6 +163,8 @@
     select.innerHTML='<option value="">DPRO商品を選択</option>'+products.filter(x=>x.is_active!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.product_name||x.product_code)}</option>`).join("");
     const savedArea=localStorage.getItem("dpro_sales_mobile_search_area");
     if(savedArea)$("#mobileSearchArea").value=savedArea;
+    const savedRadius=localStorage.getItem("dpro_sales_mobile_search_radius");
+    if(savedRadius)$("#mobileSearchRadius").value=savedRadius;
   }
   function mobileSearchStatus(item){
     const status=item.result_status||"new";
@@ -197,19 +200,44 @@
     }).join(""):`<div class="empty"><i>⌕</i><b>検索結果はまだありません</b><small>DPRO商品と営業エリアを選んで検索してください。</small></div>`;
     updateMobileImportButton();
   }
+  async function ensureMobileSearchLocation(){
+    if(state.position)return true;
+    if(!navigator.geolocation){toast("この端末では現在地を取得できません","error");return false}
+    toast("現在地を取得しています");
+    return await new Promise(resolve=>{
+      navigator.geolocation.getCurrentPosition(pos=>{
+        state.position={lat:pos.coords.latitude,lng:pos.coords.longitude};
+        $("#locationTitle").textContent="現在地を取得しました";
+        $("#locationDetail").textContent=`緯度 ${state.position.lat.toFixed(5)}／経度 ${state.position.lng.toFixed(5)}（精度 約${Math.round(pos.coords.accuracy)}m）`;
+        renderAll();
+        resolve(true);
+      },()=>{
+        toast("位置情報を許可してください","error");
+        resolve(false);
+      },{enableHighAccuracy:true,timeout:10000,maximumAge:60000});
+    });
+  }
   async function mobileSearch(e){
     e.preventDefault();
     const productId=$("#mobileSearchProduct").value;
     const areaText=$("#mobileSearchArea").value.trim();
     const query=$("#mobileSearchQuery").value.trim();
-    if(!productId||!areaText){toast("DPRO商品と営業エリアを入力してください","error");return}
-    const body={productId,areaText,pagesPerKeyword:1,maxResults:20};
+    const useLocation=$("#mobileUseLocation").checked;
+    const radiusM=Number($("#mobileSearchRadius").value||5000);
+    if(!productId){toast("DPRO商品を選択してください","error");return}
+    if(!areaText&&!useLocation){toast("営業エリアを入力するか、現在地検索を選択してください","error");return}
+    const body={productId,pagesPerKeyword:1,maxResults:20};
+    if(areaText)body.areaText=areaText;
     if(query)body.query=query;
-    if($("#mobileUseLocation").checked){
-      if(!state.position){toast("現在地を取得してから、もう一度検索してください","error");locate();return}
-      body.center={latitude:state.position.lat,longitude:state.position.lng};body.radiusM=5000
+    if(useLocation){
+      const acquired=await ensureMobileSearchLocation();
+      if(!acquired)return;
+      body.center={latitude:state.position.lat,longitude:state.position.lng};
+      body.radiusM=radiusM;
     }
-    localStorage.setItem("dpro_sales_mobile_search_area",areaText);
+    if(areaText)localStorage.setItem("dpro_sales_mobile_search_area",areaText);
+    else localStorage.removeItem("dpro_sales_mobile_search_area");
+    localStorage.setItem("dpro_sales_mobile_search_radius",String(radiusM));
     loading(true);
     try{
       const d=await api("/api/places/search",{method:"POST",body});
@@ -269,7 +297,7 @@
   async function snooze(id){const d=new Date();d.setDate(d.getDate()+1);d.setHours(9,0,0,0);loading(true);try{await api(`/api/next-actions/${id}/snooze`,{method:"POST",body:{snoozedUntil:d.toISOString(),reason:"スマホ画面から翌日に変更"}});await loadAll();renderAll();toast("明日に変更しました")}catch(e){toast(e.message,"error")}finally{loading(false)}}
   async function enqueueDue(){loading(true);try{const d=await api("/api/follow-ups/enqueue",{method:"POST",body:{queueDate:today(),limit:100}});await loadAll();renderAll();toast(`今日の営業へ追加しました（${d.result?.addedCount??0}件）`)}catch(e){toast(e.message,"error")}finally{loading(false)}}
   async function changeScope(scope){state.scope=scope;$$('[data-scope]').forEach(x=>x.classList.toggle('active',x.dataset.scope===scope));loading(true);try{const d=await api(`/api/follow-ups?scope=${scope}&date=${today()}&limit=100`);state.followups=d.items||d.followUps||[];renderFollow()}catch(e){toast(e.message,"error")}finally{loading(false)}}
-  function bind(){$("#loginForm").addEventListener("submit",login);$("#refreshBtn").onclick=refresh;$("#mobileSearchForm").addEventListener("submit",mobileSearch);$("#mobileSelectAll").onclick=()=>{$$(".mobile-result-check:not(:disabled)").forEach(x=>{x.checked=true;state.selectedPlaces.add(x.value)});updateMobileImportButton()};$("#mobileImportSelected").onclick=mobileImportSelected;$("#mobileSearchResults").addEventListener("change",e=>{if(!e.target.classList.contains("mobile-result-check"))return;e.target.checked?state.selectedPlaces.add(e.target.value):state.selectedPlaces.delete(e.target.value);updateMobileImportButton()});$("#findLocationHome").onclick=$("#locateBtn").onclick=locate;$("#optimizeBtn").onclick=optimizeRoute;$("#openRouteBtn").onclick=openGoogleRoute;$("#enqueueDueBtn").onclick=enqueueDue;$("#logoutBtn").onclick=()=>{saveSession(null);showLogin();toast("ログアウトしました")};$("#menuBtn").onclick=()=>{if(confirm("ログアウトしますか？")){saveSession(null);showLogin()}};document.addEventListener("click",e=>{const t=e.target.closest("[data-view],[data-go],[data-detail],[data-result],[data-result-prospect],[data-close-sheet],[data-close-modal],[data-choice],[data-complete],[data-snooze],[data-action-detail],[data-scope],[data-route-up],[data-route-down],[data-start]");if(!t)return;if(t.dataset.view)navigate(t.dataset.view);if(t.dataset.go)navigate(t.dataset.go);if(t.dataset.detail)openDetail(t.dataset.detail);if(t.dataset.result)openResult(t.dataset.result);if(t.dataset.start)startQueue(t.dataset.start);if(t.dataset.resultProspect){const q=state.queue.find(x=>x.prospect_id===t.dataset.resultProspect);if(q)openResult(q.id);else toast("今日の営業キューにありません","error")};if(t.hasAttribute("data-close-sheet"))closeSheet();if(t.hasAttribute("data-close-modal"))closeModal();if(t.dataset.choice){$$('[data-choice]').forEach(x=>x.classList.remove('active'));t.classList.add('active');$("#resultForm [name=resultCode]").value=t.dataset.choice;const map={owner_contacted:"visit",material_delivered:"material",demo_sent:"demo",quote_sent:"quote",phone_no_answer:"phone"};if(map[t.dataset.choice])$("#resultForm [name=activityType]").value=map[t.dataset.choice]};if(t.dataset.complete)completeAction(t.dataset.complete);if(t.dataset.snooze)snooze(t.dataset.snooze);if(t.dataset.actionDetail)openDetail(t.dataset.actionDetail);if(t.dataset.scope)changeScope(t.dataset.scope);if(t.dataset.routeUp)moveRoute(t.dataset.routeUp,-1);if(t.dataset.routeDown)moveRoute(t.dataset.routeDown,1)});$("#sheetBackdrop").addEventListener("click",e=>{if(e.target===$("#sheetBackdrop"))closeSheet()});$("#modalBackdrop").addEventListener("click",e=>{if(e.target===$("#modalBackdrop"))closeModal()});document.addEventListener("submit",e=>{if(e.target.id==="resultForm"){e.preventDefault();submitResult(e.target)}})}
+  function bind(){$("#loginForm").addEventListener("submit",login);$("#refreshBtn").onclick=refresh;$("#mobileSearchForm").addEventListener("submit",mobileSearch);$("#mobileUseLocation").addEventListener("change",e=>{$("#mobileSearchRadius").disabled=!e.target.checked;if(e.target.checked&&!state.position)toast("検索時に現在地を取得します")});$("#mobileSelectAll").onclick=()=>{$$(".mobile-result-check:not(:disabled)").forEach(x=>{x.checked=true;state.selectedPlaces.add(x.value)});updateMobileImportButton()};$("#mobileImportSelected").onclick=mobileImportSelected;$("#mobileSearchResults").addEventListener("change",e=>{if(!e.target.classList.contains("mobile-result-check"))return;e.target.checked?state.selectedPlaces.add(e.target.value):state.selectedPlaces.delete(e.target.value);updateMobileImportButton()});$("#findLocationHome").onclick=$("#locateBtn").onclick=locate;$("#optimizeBtn").onclick=optimizeRoute;$("#openRouteBtn").onclick=openGoogleRoute;$("#enqueueDueBtn").onclick=enqueueDue;$("#logoutBtn").onclick=()=>{saveSession(null);showLogin();toast("ログアウトしました")};$("#menuBtn").onclick=()=>{if(confirm("ログアウトしますか？")){saveSession(null);showLogin()}};document.addEventListener("click",e=>{const t=e.target.closest("[data-view],[data-go],[data-detail],[data-result],[data-result-prospect],[data-close-sheet],[data-close-modal],[data-choice],[data-complete],[data-snooze],[data-action-detail],[data-scope],[data-route-up],[data-route-down],[data-start]");if(!t)return;if(t.dataset.view)navigate(t.dataset.view);if(t.dataset.go)navigate(t.dataset.go);if(t.dataset.detail)openDetail(t.dataset.detail);if(t.dataset.result)openResult(t.dataset.result);if(t.dataset.start)startQueue(t.dataset.start);if(t.dataset.resultProspect){const q=state.queue.find(x=>x.prospect_id===t.dataset.resultProspect);if(q)openResult(q.id);else toast("今日の営業キューにありません","error")};if(t.hasAttribute("data-close-sheet"))closeSheet();if(t.hasAttribute("data-close-modal"))closeModal();if(t.dataset.choice){$$('[data-choice]').forEach(x=>x.classList.remove('active'));t.classList.add('active');$("#resultForm [name=resultCode]").value=t.dataset.choice;const map={owner_contacted:"visit",material_delivered:"material",demo_sent:"demo",quote_sent:"quote",phone_no_answer:"phone"};if(map[t.dataset.choice])$("#resultForm [name=activityType]").value=map[t.dataset.choice]};if(t.dataset.complete)completeAction(t.dataset.complete);if(t.dataset.snooze)snooze(t.dataset.snooze);if(t.dataset.actionDetail)openDetail(t.dataset.actionDetail);if(t.dataset.scope)changeScope(t.dataset.scope);if(t.dataset.routeUp)moveRoute(t.dataset.routeUp,-1);if(t.dataset.routeDown)moveRoute(t.dataset.routeDown,1)});$("#sheetBackdrop").addEventListener("click",e=>{if(e.target===$("#sheetBackdrop"))closeSheet()});$("#modalBackdrop").addEventListener("click",e=>{if(e.target===$("#modalBackdrop"))closeModal()});document.addEventListener("submit",e=>{if(e.target.id==="resultForm"){e.preventDefault();submitResult(e.target)}})}
   async function init(){bind();$("#facilityCode").value=CFG.defaultFacilityCode||"dpro_sales";if(restoreSession()){try{await api("/api/auth/session");await boot();return}catch{saveSession(null)}}showLogin()}
   init();
 })();
