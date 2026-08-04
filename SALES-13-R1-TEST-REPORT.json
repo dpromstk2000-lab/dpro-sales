@@ -1,0 +1,22 @@
+{
+  "systemCode": "SALES",
+  "step": "SALES-13-R1",
+  "issue": "Production login function was accidentally removed while deleting demo mock code.",
+  "fix": "Restored editable facility/admin fields and production /api/auth/login submission.",
+  "checks": {
+    "version": true,
+    "loginFunctionRestored": true,
+    "loginApi": true,
+    "facilityEditable": true,
+    "adminEditable": true,
+    "adminFourDigits": true,
+    "bindsLogin": true,
+    "javascriptSyntax": true,
+    "htmlTxtIdentical": true
+  },
+  "syntaxErrors": [],
+  "sha256": {
+    "staff": "2136386741922ad9427c1e02743b3ac1548566d47420762033dc28d801c1e88b",
+    "config": "44828874d20dcd7e75fde0e4e1ca9e2b69ccd9eb0f2e6a77c039e7d53134d2b5"
+  }
+}

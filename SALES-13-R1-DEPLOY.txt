@@ -1,0 +1,33 @@
+DPRO SALES-13 R1 ログイン修正
+================================
+
+修正内容:
+- 本番ログイン処理を復旧
+- 施設コード欄を入力可能
+- 管理コード欄を入力可能
+- 施設コード dpro_sales を初期表示
+- 管理コードは4桁入力
+- SALES-13おすすめルート機能はそのまま維持
+
+GitHubアップロード:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+リポジトリ直下へ上書き:
+- staff.html
+- config.js
+
+Commit message:
+SALES-13 スマホ本番ログインを修正
+
+確認URL:
+https://dpromstk2000-lab.github.io/dpro-sales/staff.html?check=SALES13-R1
+
+ログイン:
+施設コード: dpro_sales
+管理コード: 0206
+
+Cloudflare Worker:
+変更不要
+
+Supabase:
+変更不要

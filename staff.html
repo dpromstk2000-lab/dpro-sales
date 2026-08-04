@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0f233d">
-  <meta name="dpro-version" content="SALES-13-STAFF-20260804">
+  <meta name="dpro-version" content="SALES-13-STAFF-R1-20260804">
   <title>DPRO SALES｜スマホ営業</title>
   <meta name="description" content="DPROシステム専用のスマホ営業・訪問記録・ルート画面">
   <script src="./config.js"></script>
@@ -55,10 +55,10 @@
     <div class="login-brand"><div class="cube">D</div><div><b>DPRO SALES</b><small>スマホ営業ナビ</small></div></div>
     <form id="loginForm" class="login-card">
       <h1>営業を開始</h1><p>今日の訪問先、地図、営業トーク、結果記録をスマホ一つで確認します。</p>
-      <div class="field"><label>施設コード</label><input id="facilityCode" autocomplete="username" required></div>
-      <div class="field"><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" autocomplete="current-password" required></div>
+      <div class="field"><label>施設コード</label><input id="facilityCode" value="dpro_sales" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field"><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="0206" required></div>
       <button class="btn btn-primary btn-block" type="submit">ログインして今日の営業を見る</button>
-      <div class="login-note">本番営業環境です。施設コードは <b>dpro_sales</b> です。</div>
+      <div class="login-note">本番営業環境です。施設コードは <b>dpro_sales</b>、管理コードは4桁です。</div>
     </form>
   </section>
 
@@ -191,7 +191,36 @@
   function loading(on){$("#loading").classList.toggle("hidden",!on)}
   let toastTimer;function toast(msg,type=""){const el=$("#toast");el.textContent=msg;el.className=`toast show ${type}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className="toast",2700)}
   async function api(path,{method="GET",body=null}={}){const headers={Accept:"application/json"};if(body!==null)headers["Content-Type"]="application/json; charset=utf-8";if(state.token)headers.Authorization=`Bearer ${state.token}`;let res;try{res=await fetch(CFG.apiBaseUrl+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store",credentials:"omit"})}catch{throw new Error("APIへ接続できません。通信環境を確認してください。")};let d={};try{d=await res.json()}catch{}if(!res.ok||d.ok===false){if(res.status===401){saveSession(null);showLogin()}throw new Error(d.message||d.error||`APIエラー (${res.status})`)}return d}
-  function showLogin(){$("#loginPage").classList.remove("hidden");$("#mainApp").classList.add("hidden")}
+  async function login(e){
+    e.preventDefault();
+    const facilityCode=$("#facilityCode").value.trim();
+    const adminCode=$("#adminCode").value;
+    if(!facilityCode){
+      toast("施設コードを入力してください","error");
+      $("#facilityCode").focus();
+      return;
+    }
+    if(!adminCode){
+      toast("管理コードを入力してください","error");
+      $("#adminCode").focus();
+      return;
+    }
+    loading(true);
+    try{
+      const d=await api("/api/auth/login",{
+        method:"POST",
+        body:{facilityCode,adminCode}
+      });
+      saveSession(d);
+      $("#adminCode").value="";
+      await boot();
+    }catch(err){
+      toast(err.message,"error");
+    }finally{
+      loading(false);
+    }
+  }
+  function showLogin(){$("#loginPage").classList.remove("hidden");$("#mainApp").classList.add("hidden");setTimeout(()=>$("#adminCode")?.focus(),80)}
   function showApp(){$("#loginPage").classList.add("hidden");$("#mainApp").classList.remove("hidden")}
 
   function setupMobileSearch(){
