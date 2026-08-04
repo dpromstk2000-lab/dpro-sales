@@ -7,5 +7,6 @@ window.DPRO_CONFIG = Object.freeze({
   sessionStorageKey: "dpro_sales_session_v1",
   ownerVersion: "SALES-7-OWNER-20260804",
   ownerIpadVersion: "SALES-8-OWNER-IPAD-20260804",
+  staffVersion: "SALES-9-STAFF-20260804",
   timezone: "Asia/Tokyo"
 });
