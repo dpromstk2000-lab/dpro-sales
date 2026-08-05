@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="dpro-version" content="SALES-14-TEAM-20260804">
+  <title>DPRO SALES｜スタッフ設定</title>
+  <script src="./config.js"></script>
+  <style>
+    :root{--navy:#102c49;--green:#0d8a65;--red:#c43e4b;--amber:#a86700;--bg:#f3f7fa;--line:#dbe5ec;--text:#17283d;--muted:#6f8093}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}button,input,select{font:inherit}button{cursor:pointer}.hidden{display:none!important}
+    .top{height:70px;background:var(--navy);color:#fff;display:flex;align-items:center;padding:0 24px;gap:12px}.cube{width:40px;height:40px;border-radius:12px;background:#14a97d;display:grid;place-items:center;font-weight:900}.top strong{font-size:17px}.top small{display:block;font-size:10px;opacity:.7;margin-top:2px}.top a{margin-left:auto;color:#fff;text-decoration:none;font-size:12px;background:rgba(255,255,255,.1);padding:9px 12px;border-radius:10px}
+    main{max-width:1100px;margin:auto;padding:24px}.head{display:flex;justify-content:space-between;align-items:flex-end;gap:14px;margin-bottom:18px}h1{font-size:26px;margin:0 0 5px}.head p{margin:0;color:var(--muted);font-size:12px;line-height:1.6}.badge{padding:8px 12px;border-radius:999px;font-size:11px;font-weight:850}.off{background:#edf2f5;color:#516477}.on{background:#e6f7f0;color:#087353}
+    .panel{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 10px 28px rgba(16,44,73,.06);margin-bottom:17px;overflow:hidden}.panel-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}.panel-head h2{font-size:15px;margin:0}.panel-body{padding:18px}.notice{background:#fff8e9;color:#725018;border-radius:13px;padding:13px;font-size:11px;line-height:1.7;margin-bottom:15px}
+    .switch-row{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}.switch-row b{font-size:15px}.switch-row p{font-size:11px;color:var(--muted);margin:5px 0 0;line-height:1.6}.switch{position:relative;width:58px;height:32px}.switch input{display:none}.slider{position:absolute;inset:0;background:#bdc9d3;border-radius:99px;transition:.2s}.slider:after{content:"";position:absolute;width:26px;height:26px;left:3px;top:3px;background:#fff;border-radius:50%;box-shadow:0 2px 7px #0003;transition:.2s}.switch input:checked+.slider{background:var(--green)}.switch input:checked+.slider:after{transform:translateX(26px)}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.field{display:grid;gap:6px;margin-bottom:12px}label{font-size:11px;color:var(--muted);font-weight:800}input,select{height:44px;border:1px solid #cdd9e2;border-radius:11px;padding:0 12px;background:#fff}.btn{height:44px;border:0;border-radius:11px;padding:0 16px;font-weight:800}.primary{background:var(--green);color:#fff}.secondary{background:#edf3f6;color:#20354e}.danger{background:#fff0f1;color:var(--red)}.btn:disabled{opacity:.45;cursor:not-allowed}
+    table{width:100%;border-collapse:collapse}th,td{padding:12px 10px;border-bottom:1px solid #edf1f4;text-align:left;font-size:12px}th{font-size:10px;color:var(--muted);background:#f7f9fb}td strong{display:block}td small{color:var(--muted)}.actions{display:flex;gap:6px;flex-wrap:wrap}.small{height:34px;padding:0 10px;font-size:10px}.empty{padding:30px;text-align:center;color:var(--muted)}.login{max-width:480px;margin:70px auto;background:#fff;border:1px solid var(--line);border-radius:22px;padding:25px;box-shadow:0 18px 46px rgba(16,44,73,.12)}.login h1{font-size:23px}.error{background:#fff0f1;color:#9b2934;border-radius:11px;padding:11px;font-size:11px;margin-bottom:12px}
+    @media(max-width:720px){main{padding:16px}.grid{grid-template-columns:1fr}.table-wrap{overflow:auto}table{min-width:700px}.head{align-items:flex-start;flex-direction:column}}
+  </style>
+</head>
+<body>
+  <header class="top"><div class="cube">D</div><div><strong>DPRO SALES</strong><small>スタッフ設定</small></div><a href="owner.html">PC管理画面へ戻る</a></header>
+
+  <section id="loginPage" class="login">
+    <h1>管理者ログイン</h1>
+    <p style="font-size:12px;color:var(--muted);line-height:1.7">スタッフ設定は管理者だけが変更できます。</p>
+    <div id="loginError" class="error hidden"></div>
+    <form id="loginForm">
+      <div class="field"><label>施設コード</label><input id="facilityCode" value="dpro_sales" required></div>
+      <div class="field"><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" maxlength="4" placeholder="0206" required></div>
+      <button class="btn primary" style="width:100%" type="submit">ログイン</button>
+    </form>
+  </section>
+
+  <main id="app" class="hidden">
+    <div class="head"><div><h1>複数スタッフ設定</h1><p>現在の1人運用を維持したまま、必要になった時点でONにできます。</p></div><span id="modeBadge" class="badge off">現在OFF</span></div>
+
+    <section class="panel">
+      <div class="panel-head"><h2>利用モード</h2><button id="saveSettings" class="btn primary">設定を保存</button></div>
+      <div class="panel-body">
+        <div class="notice">初期状態はOFFです。ONにすると、スマホ画面でスタッフ別ログイン・担当確保・重複訪問防止が有効になります。OFFへ戻すと、現在の担当確保は解除されます。</div>
+        <div class="switch-row">
+          <div><b>複数スタッフ機能を使う</b><p>OFFの間は、今までどおり施設コードと管理コード0206で利用します。</p></div>
+          <label class="switch"><input id="multiStaffEnabled" type="checkbox"><span class="slider"></span></label>
+        </div>
+        <div class="grid" style="margin-top:18px">
+          <div class="field"><label>担当確保の有効時間</label><select id="claimTimeout"><option value="60">1時間</option><option value="120">2時間</option><option value="180">3時間</option><option value="240">4時間</option><option value="480">8時間</option></select></div>
+          <div class="field"><label>他スタッフの営業先</label><select id="staffCanSeeAll"><option value="true">表示する</option><option value="false">自分と未担当だけ</option></select></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>スタッフを追加</h2></div>
+      <form id="staffForm" class="panel-body">
+        <div class="grid">
+          <div class="field"><label>スタッフコード</label><input name="staffCode" placeholder="STAFF01" required></div>
+          <div class="field"><label>表示名</label><input name="displayName" placeholder="田中" required></div>
+          <div class="field"><label>ログインID</label><input name="loginId" placeholder="tanaka" required></div>
+          <div class="field"><label>4桁PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234" required></div>
+          <div class="field"><label>権限</label><select name="role"><option value="sales">営業スタッフ</option><option value="manager">営業責任者</option><option value="viewer">閲覧のみ</option></select></div>
+          <div style="display:flex;align-items:end"><button class="btn primary" style="width:100%" type="submit">スタッフを登録</button></div>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel">
+      <div class="panel-head"><h2>登録スタッフ</h2><button id="reloadStaff" class="btn secondary small">更新</button></div>
+      <div class="table-wrap"><table><thead><tr><th>スタッフ</th><th>ログインID</th><th>権限</th><th>状態</th><th>操作</th></tr></thead><tbody id="staffRows"></tbody></table></div>
+    </section>
+  </main>
+
+<script>
+(()=>{
+  const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",sessionStorageKey:"dpro_sales_session_v2"};
+  const $=s=>document.querySelector(s);
+  let token="";
+  let settings={};
+  let staff=[];
+
+  async function api(path,{method="GET",body=null}={}){
+    const headers={Accept:"application/json"};
+    if(body!==null)headers["Content-Type"]="application/json";
+    if(token)headers.Authorization="Bearer "+token;
+    const response=await fetch(CFG.apiBaseUrl+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok||data.ok===false)throw new Error(data.message||data.error||"処理に失敗しました");
+    return data;
+  }
+  function showError(message){$("#loginError").textContent=message;$("#loginError").classList.remove("hidden")}
+  function toast(message){alert(message)}
+  function esc(v){return String(v??"").replace(/[&<>'"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;",'"':"&quot;"}[c]))}
+  async function login(e){
+    e.preventDefault();
+    $("#loginError").classList.add("hidden");
+    try{
+      const data=await api("/api/auth/login",{method:"POST",body:{facilityCode:$("#facilityCode").value.trim(),adminCode:$("#adminCode").value}});
+      token=data.token;
+      $("#loginPage").classList.add("hidden");
+      $("#app").classList.remove("hidden");
+      await loadAll();
+    }catch(error){showError(error.message)}
+  }
+  async function loadAll(){
+    const [settingsData,staffData]=await Promise.all([api("/api/team/settings"),api("/api/staff")]);
+    settings=settingsData.settings||{};
+    staff=staffData.staff||[];
+    render();
+  }
+  function render(){
+    $("#multiStaffEnabled").checked=settings.multiStaffEnabled===true;
+    $("#claimTimeout").value=String(settings.claimTimeoutMinutes||180);
+    $("#staffCanSeeAll").value=String(settings.staffCanSeeAllQueue!==false);
+    $("#modeBadge").textContent=settings.multiStaffEnabled?"現在ON":"現在OFF";
+    $("#modeBadge").className="badge "+(settings.multiStaffEnabled?"on":"off");
+    $("#staffRows").innerHTML=staff.length?staff.map(s=>`<tr><td><strong>${esc(s.display_name)}</strong><small>${esc(s.staff_code)}</small></td><td>${esc(s.login_id||"未設定")}</td><td>${esc(s.role)}</td><td>${s.is_active?'<span class="badge on">有効</span>':'<span class="badge off">停止</span>'}</td><td><div class="actions"><button class="btn secondary small" data-pin="${s.id}" data-name="${esc(s.display_name)}">PIN変更</button>${s.role==="owner"?"":`<button class="btn ${s.is_active?"danger":"secondary"} small" data-active="${s.id}" data-next="${s.is_active?"false":"true"}">${s.is_active?"停止":"再開"}</button>`}</div></td></tr>`).join(""):'<tr><td colspan="5" class="empty">スタッフが登録されていません。</td></tr>';
+  }
+  async function saveSettings(){
+    const enabled=$("#multiStaffEnabled").checked;
+    if(!enabled&&settings.multiStaffEnabled&&!confirm("OFFにすると現在の担当確保が解除されます。よろしいですか？"))return;
+    const data=await api("/api/team/settings",{method:"PATCH",body:{enabled,claimTimeoutMinutes:Number($("#claimTimeout").value),staffCanSeeAllQueue:$("#staffCanSeeAll").value==="true"}});
+    settings=data.settings;
+    render();
+    toast(enabled?"複数スタッフ機能をONにしました":"1人運用へ戻しました");
+  }
+  async function createStaff(form){
+    const data=Object.fromEntries(new FormData(form));
+    await api("/api/staff",{method:"POST",body:{staffCode:data.staffCode,displayName:data.displayName,loginId:data.loginId,pin:data.pin,role:data.role,isActive:true}});
+    form.reset();
+    await loadAll();
+    toast("スタッフを登録しました");
+  }
+  async function changePin(id,name){
+    const pin=prompt(`${name}さんの新しい4桁PINを入力してください`);
+    if(pin===null)return;
+    if(!/^\d{4}$/.test(pin)){toast("PINは4桁の数字です");return}
+    await api(`/api/staff/${id}`,{method:"PATCH",body:{pin}});
+    toast("PINを変更しました");
+  }
+  async function changeActive(id,next){
+    await api(`/api/staff/${id}`,{method:"PATCH",body:{isActive:next}});
+    await loadAll();
+  }
+  $("#loginForm").addEventListener("submit",login);
+  $("#saveSettings").onclick=()=>saveSettings().catch(e=>toast(e.message));
+  $("#reloadStaff").onclick=()=>loadAll().catch(e=>toast(e.message));
+  $("#staffForm").addEventListener("submit",e=>{e.preventDefault();createStaff(e.target).catch(err=>toast(err.message))});
+  document.addEventListener("click",e=>{
+    const pin=e.target.closest("[data-pin]");
+    if(pin)changePin(pin.dataset.pin,pin.dataset.name).catch(err=>toast(err.message));
+    const active=e.target.closest("[data-active]");
+    if(active)changeActive(active.dataset.active,active.dataset.next==="true").catch(err=>toast(err.message));
+  });
+})();
+</script>
+</body>
+</html>

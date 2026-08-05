@@ -98,7 +98,7 @@
           <button class="nav-btn" data-view="analytics"><span class="nav-icon">▥</span>営業分析</button>
           <button class="nav-btn" data-view="activities"><span class="nav-icon">≡</span>活動履歴</button>
           <div class="nav-label">MASTER</div>
-          <button class="nav-btn" data-view="products"><span class="nav-icon">◆</span>DPRO商品</button>
+          <button class="nav-btn" data-view="products"><span class="nav-icon">◆</span>DPRO商品</button><a class="nav-btn" href="team.html"><span class="nav-icon">♟</span>スタッフ設定</a>
         </nav>
         <div class="sidebar-bottom"><div class="sidebar-user"><div class="avatar">管</div><div><strong id="sidebarUser">管理者</strong><small id="sidebarFacility">DPRO SALES</small></div></div></div>
       </aside>
@@ -234,7 +234,7 @@
   <script>
   (()=>{
     "use strict";
-    const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",defaultFacilityCode:"dpro_sales",sessionStorageKey:"dpro_sales_session_v1",ownerVersion:"SALES-12-OWNER-20260804"};
+    const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",defaultFacilityCode:"dpro_sales",sessionStorageKey:"dpro_sales_session_v1",ownerVersion:"SALES-14-OWNER-20260804"};
     const MOCK=new URLSearchParams(location.search).get("mock")==="1";
     const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
     const state={token:null,session:null,facility:null,staff:[],products:[],campaigns:[],dashboard:null,queue:[],followOverview:{},followups:[],prospects:[],activities:[],searchRun:null,searchResults:[],selectedResults:new Set(),analytics:null,activeView:"dashboard",loading:0};
