@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0f233d">
-  <meta name="dpro-version" content="SALES-20-STAFF-20260810">
+  <meta name="dpro-version" content="SALES-24-STAFF-20260810">
   <title>DPRO SALES｜スマホ営業</title>
   <meta name="description" content="DPROシステム専用のスマホ営業・訪問記録・ルート画面">
   <script src="./config.js"></script>
@@ -76,6 +76,19 @@
     .sales20-quick{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:7px}
     .sales20-replied{font-size:10px;font-weight:900;color:#275fa4;background:#eaf3ff;padding:5px 8px;border-radius:999px;white-space:nowrap}
     .sales20-meeting{font-size:10px;font-weight:900;color:#7c4c00;background:#fff0d0;padding:5px 8px;border-radius:999px;white-space:nowrap}
+
+    .sales24-next{background:linear-gradient(135deg,#0e3456,#0a6f55);color:#fff;border-radius:20px;padding:16px;margin-bottom:12px;box-shadow:0 10px 24px rgba(12,59,75,.14)}
+    .sales24-next-label{font-size:9px;font-weight:900;letter-spacing:.1em;opacity:.74;margin-bottom:6px}
+    .sales24-next h3{margin:0 0 4px;font-size:18px;line-height:1.35}
+    .sales24-next p{margin:0;font-size:10px;opacity:.8;line-height:1.55}
+    .sales24-next .product{margin-top:7px;font-size:10px;font-weight:800;color:#d8fff0}
+    .sales24-next-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:13px}
+    .sales24-next-actions .wide{grid-column:1/-1}
+    .sales24-next .btn{background:#fff;color:#153d57;border-color:#fff}
+    .sales24-next .btn.btn-primary{background:#11a46f;color:#fff;border-color:#11a46f}
+    .sales24-next .btn.btn-outline{background:transparent;color:#fff;border-color:rgba(255,255,255,.65)}
+    .sales24-empty{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;text-align:center;color:var(--muted);font-size:11px;margin-bottom:12px}
+    .sales24-step{margin-top:9px;font-size:9px;line-height:1.6;color:#d9eee8}
 </style>
 </head>
 <body>
@@ -199,6 +212,7 @@
 
       <section id="viewLine" class="view">
         <div class="page-head"><div><h2>LINE営業</h2><p>営業LPが準備できた店舗から順番に送れます。</p></div><button id="sales19Reload" class="btn btn-outline btn-small">更新</button></div>
+        <div id="sales24Next"></div>
         <div class="sales19-summary">
           <div class="mini"><b id="sales19ReadyCount">0</b><small>今すぐ送れる</small></div>
           <div class="mini"><b id="sales19WaitingCount">0</b><small>返信待ち</small></div>
@@ -656,7 +670,50 @@
     }catch(e){toast(e.message,"error")}
     finally{loading(false)}
   }
+  function sales24ReadyList(){
+    return state.lineProspects
+      .filter(p=>!["won","lost","excluded"].includes(p.pipeline_stage)&&sales19Bucket(p)==="ready")
+      .sort((a,b)=>{
+        const grade={A:0,B:1,C:2};
+        return (grade[effectiveGrade(a)]??3)-(grade[effectiveGrade(b)]??3)||String(a.business_name||"").localeCompare(String(b.business_name||""),"ja");
+      });
+  }
+  function renderSales24Next(){
+    const host=$("#sales24Next");if(!host)return;
+    const list=sales24ReadyList(),p=list[0];
+    if(!p){host.innerHTML='<div class="sales24-empty">現在「今すぐ送れる」候補はありません。LPとHP・LINE状況が揃うと、ここに次の1件が表示されます。</div>';return}
+    const x=sales19Info(p);
+    host.innerHTML=`<article class="sales24-next"><div class="sales24-next-label">NEXT LINE SALES</div><h3>${esc(p.business_name||"営業先")}</h3><p>${esc(p.address||p.area||"住所未登録")}</p><div class="product">${esc(x.product?.product_name||"DPRO商品")}</div><div class="sales24-next-actions"><button class="btn btn-primary wide" data-sales24-share="${esc(p.id)}">① LINEへ共有</button><a class="btn btn-outline" href="${esc(x.lp)}" target="_blank" rel="noopener">営業LP確認</a><button class="btn btn-outline" data-detail="${esc(p.id)}">店舗詳細</button><button class="btn wide" data-sales24-sent="${esc(p.id)}">② 実際に送った → 送信済み記録</button></div><div class="sales24-step">実際にLINEで送信した後だけ②を押してください。記録後、このカードは自動で次の候補へ切り替わります。</div></article>`;
+  }
+  async function sales24EnsureDetail(id){
+    let d=state.details.get(id);
+    if(!d){d=await api(`/api/prospects/${id}/sales-detail`);state.details.set(id,d)}
+    return d;
+  }
+  async function sales24Share(id){
+    loading(true);
+    try{await sales24EnsureDetail(id);await sales18ShareLine(id)}
+    catch(e){toast(e.message,"error")}
+    finally{loading(false)}
+  }
+  async function sales24RecordSent(id){
+    const d=await sales24EnsureDetail(id),support=d?.salesSupport||{},p=d?.prospect||{};
+    if(!support.lpUrl){toast("営業LPが未登録です","error");return}
+    if(!confirm(`${p.business_name||"この営業先"}へ実際にLINE送信済みとして記録しますか？`))return;
+    const due=sales15DueDate(3),hasPending=(d?.nextActions||[]).some(x=>["pending","snoozed"].includes(x.status));
+    const profile={...(support.profile||{}),lineOfficialStatus:"yes",lineStatus:"waiting",lineLastSentAt:new Date().toISOString(),updatedAt:new Date().toISOString()};
+    loading(true);
+    try{
+      await api(`/api/prospects/${id}/record-activity`,{method:"POST",body:{activityType:"line",resultCode:"line_lp_sent",summary:"LINEで業種別営業LPを送信",details:`送付LP: ${support.lpUrl}`,isOwnerContact:false,applyRule:false,completeQueue:false,nextAction:{actionType:"reply_check",dueDate:due,description:"LINE営業LP送信後の反応を確認",priority:"normal",isPrimary:!hasPending},metadata:{sales24:true,lpUrl:support.lpUrl,channel:"line"}}});
+      await api(`/api/prospects/${id}`,{method:"PATCH",body:{sales15Profile:profile}});
+      state.details.delete(id);state.lineLoaded=false;
+      await loadSales19(true);
+      toast(`送信済みを記録しました。次の候補へ進みます。${fmtDate(due)}に反応確認を登録しました`);
+    }catch(e){toast(e.message,"error")}
+    finally{loading(false)}
+  }
   function renderSales19(){
+    renderSales24Next();
     const all=state.lineProspects.filter(p=>!["won","lost","excluded"].includes(p.pipeline_stage));
     const ready=all.filter(p=>sales19Bucket(p)==="ready");
     const waiting=all.filter(p=>sales19Bucket(p)==="waiting");
@@ -778,7 +835,7 @@
     $("#recommendRouteBtn").onclick=recommendSmartRoute;
     $("#recalculateRouteBtn").onclick=recommendSmartRoute;
     $("#applyRouteBtn").onclick=applySmartRoute;
-    $("#disableRouteBtn").onclick=disableSmartRoute;$("#sales19Reload").onclick=()=>loadSales19(true);$$("[data-sales19-scope]").forEach(b=>b.onclick=()=>{state.lineScope=b.dataset.sales19Scope;$$("[data-sales19-scope]").forEach(x=>x.classList.toggle("active",x===b));renderSales19()});$("#refreshBtn").onclick=refresh;$("#mobileSearchForm").addEventListener("submit",mobileSearch);$("#mobileUseLocation").addEventListener("change",e=>{$("#mobileSearchRadius").disabled=!e.target.checked;if(e.target.checked&&!state.position)toast("検索時に現在地を取得します")});$("#mobileSelectAll").onclick=()=>{$$(".mobile-result-check:not(:disabled)").forEach(x=>{x.checked=true;state.selectedPlaces.add(x.value)});updateMobileImportButton()};$("#mobileImportSelected").onclick=mobileImportSelected;$("#mobileSearchResults").addEventListener("change",e=>{if(!e.target.classList.contains("mobile-result-check"))return;e.target.checked?state.selectedPlaces.add(e.target.value):state.selectedPlaces.delete(e.target.value);updateMobileImportButton()});$("#findLocationHome").onclick=$("#locateBtn").onclick=locate;$("#optimizeBtn").onclick=optimizeRoute;$("#openRouteBtn").onclick=openGoogleRoute;$("#enqueueDueBtn").onclick=enqueueDue;$("#logoutBtn").onclick=()=>{clearInterval(state.refreshTimer);saveSession(null);showLogin();loadAuthMode();toast("ログアウトしました")};$("#menuBtn").onclick=()=>{if(confirm("ログアウトしますか？")){saveSession(null);showLogin()}};document.addEventListener("click",e=>{const t=e.target.closest("[data-view],[data-go],[data-detail],[data-result],[data-result-prospect],[data-close-sheet],[data-close-modal],[data-choice],[data-complete],[data-snooze],[data-action-detail],[data-scope],[data-route-up],[data-route-down],[data-start],[data-release],[data-team-scope],[data-copy-line],[data-copy-lp],[data-line-sent],[data-sales15-profile],[data-sales19-share],[data-sales20-status]");if(!t)return;if(t.dataset.view)navigate(t.dataset.view);if(t.dataset.go)navigate(t.dataset.go);if(t.dataset.detail)openDetail(t.dataset.detail);if(t.dataset.result)openResult(t.dataset.result);if(t.dataset.start)startQueue(t.dataset.start);if(t.dataset.release)releaseQueue(t.dataset.release);if(t.dataset.teamScope){state.teamScope=t.dataset.teamScope;$$("[data-team-scope]").forEach(x=>x.classList.toggle("active",x.dataset.teamScope===state.teamScope));renderAll()}if(t.dataset.resultProspect){const q=state.queue.find(x=>x.prospect_id===t.dataset.resultProspect);if(q)openResult(q.id);else toast("今日の営業キューにありません","error")};if(t.hasAttribute("data-close-sheet"))closeSheet();if(t.hasAttribute("data-close-modal"))closeModal();if(t.dataset.choice){$$('[data-choice]').forEach(x=>x.classList.remove('active'));t.classList.add('active');$("#resultForm [name=resultCode]").value=t.dataset.choice;const map={owner_contacted:"visit",material_delivered:"material",demo_sent:"demo",quote_sent:"quote",phone_no_answer:"phone"};if(map[t.dataset.choice])$("#resultForm [name=activityType]").value=map[t.dataset.choice]};if(t.dataset.complete)completeAction(t.dataset.complete);if(t.dataset.snooze)snooze(t.dataset.snooze);if(t.dataset.actionDetail)openDetail(t.dataset.actionDetail);if(t.dataset.copyLine){const d=sales15Detail(t.dataset.copyLine);copyText(d?.salesSupport?.lineMessage||"","LINE営業文をコピー")}if(t.dataset.copyLp){const d=sales15Detail(t.dataset.copyLp);copyText(d?.salesSupport?.lpUrl||"","LP URLをコピー")}if(t.dataset.lineSent)recordSales15LineSent(t.dataset.lineSent);if(t.dataset.sales15Profile)openSales15Profile(t.dataset.sales15Profile);if(t.dataset.sales19Share)sales19ShareFromList(t.dataset.sales19Share);if(t.dataset.sales20Status)sales20SetLineStatus(t.dataset.sales20Status,t.dataset.lineStatus);if(t.dataset.scope)changeScope(t.dataset.scope);if(t.dataset.routeUp)moveRoute(t.dataset.routeUp,-1);if(t.dataset.routeDown)moveRoute(t.dataset.routeDown,1)});$("#sheetBackdrop").addEventListener("click",e=>{if(e.target===$("#sheetBackdrop"))closeSheet()});$("#modalBackdrop").addEventListener("click",e=>{if(e.target===$("#modalBackdrop"))closeModal()});document.addEventListener("submit",e=>{if(e.target.id==="resultForm"){e.preventDefault();submitResult(e.target)}if(e.target.id==="sales15ProfileForm"){e.preventDefault();submitSales15Profile(e.target)}})}
+    $("#disableRouteBtn").onclick=disableSmartRoute;$("#sales19Reload").onclick=()=>loadSales19(true);$$("[data-sales19-scope]").forEach(b=>b.onclick=()=>{state.lineScope=b.dataset.sales19Scope;$$("[data-sales19-scope]").forEach(x=>x.classList.toggle("active",x===b));renderSales19()});$("#refreshBtn").onclick=refresh;$("#mobileSearchForm").addEventListener("submit",mobileSearch);$("#mobileUseLocation").addEventListener("change",e=>{$("#mobileSearchRadius").disabled=!e.target.checked;if(e.target.checked&&!state.position)toast("検索時に現在地を取得します")});$("#mobileSelectAll").onclick=()=>{$$(".mobile-result-check:not(:disabled)").forEach(x=>{x.checked=true;state.selectedPlaces.add(x.value)});updateMobileImportButton()};$("#mobileImportSelected").onclick=mobileImportSelected;$("#mobileSearchResults").addEventListener("change",e=>{if(!e.target.classList.contains("mobile-result-check"))return;e.target.checked?state.selectedPlaces.add(e.target.value):state.selectedPlaces.delete(e.target.value);updateMobileImportButton()});$("#findLocationHome").onclick=$("#locateBtn").onclick=locate;$("#optimizeBtn").onclick=optimizeRoute;$("#openRouteBtn").onclick=openGoogleRoute;$("#enqueueDueBtn").onclick=enqueueDue;$("#logoutBtn").onclick=()=>{clearInterval(state.refreshTimer);saveSession(null);showLogin();loadAuthMode();toast("ログアウトしました")};$("#menuBtn").onclick=()=>{if(confirm("ログアウトしますか？")){saveSession(null);showLogin()}};document.addEventListener("click",e=>{const t=e.target.closest("[data-view],[data-go],[data-detail],[data-result],[data-result-prospect],[data-close-sheet],[data-close-modal],[data-choice],[data-complete],[data-snooze],[data-action-detail],[data-scope],[data-route-up],[data-route-down],[data-start],[data-release],[data-team-scope],[data-copy-line],[data-copy-lp],[data-line-sent],[data-sales15-profile],[data-sales19-share],[data-sales20-status],[data-sales24-share],[data-sales24-sent]");if(!t)return;if(t.dataset.view)navigate(t.dataset.view);if(t.dataset.go)navigate(t.dataset.go);if(t.dataset.detail)openDetail(t.dataset.detail);if(t.dataset.result)openResult(t.dataset.result);if(t.dataset.start)startQueue(t.dataset.start);if(t.dataset.release)releaseQueue(t.dataset.release);if(t.dataset.teamScope){state.teamScope=t.dataset.teamScope;$$("[data-team-scope]").forEach(x=>x.classList.toggle("active",x.dataset.teamScope===state.teamScope));renderAll()}if(t.dataset.resultProspect){const q=state.queue.find(x=>x.prospect_id===t.dataset.resultProspect);if(q)openResult(q.id);else toast("今日の営業キューにありません","error")};if(t.hasAttribute("data-close-sheet"))closeSheet();if(t.hasAttribute("data-close-modal"))closeModal();if(t.dataset.choice){$$('[data-choice]').forEach(x=>x.classList.remove('active'));t.classList.add('active');$("#resultForm [name=resultCode]").value=t.dataset.choice;const map={owner_contacted:"visit",material_delivered:"material",demo_sent:"demo",quote_sent:"quote",phone_no_answer:"phone"};if(map[t.dataset.choice])$("#resultForm [name=activityType]").value=map[t.dataset.choice]};if(t.dataset.complete)completeAction(t.dataset.complete);if(t.dataset.snooze)snooze(t.dataset.snooze);if(t.dataset.actionDetail)openDetail(t.dataset.actionDetail);if(t.dataset.copyLine){const d=sales15Detail(t.dataset.copyLine);copyText(d?.salesSupport?.lineMessage||"","LINE営業文をコピー")}if(t.dataset.copyLp){const d=sales15Detail(t.dataset.copyLp);copyText(d?.salesSupport?.lpUrl||"","LP URLをコピー")}if(t.dataset.lineSent)recordSales15LineSent(t.dataset.lineSent);if(t.dataset.sales15Profile)openSales15Profile(t.dataset.sales15Profile);if(t.dataset.sales19Share)sales19ShareFromList(t.dataset.sales19Share);if(t.dataset.sales20Status)sales20SetLineStatus(t.dataset.sales20Status,t.dataset.lineStatus);if(t.dataset.sales24Share)sales24Share(t.dataset.sales24Share);if(t.dataset.sales24Sent)sales24RecordSent(t.dataset.sales24Sent);if(t.dataset.scope)changeScope(t.dataset.scope);if(t.dataset.routeUp)moveRoute(t.dataset.routeUp,-1);if(t.dataset.routeDown)moveRoute(t.dataset.routeDown,1)});$("#sheetBackdrop").addEventListener("click",e=>{if(e.target===$("#sheetBackdrop"))closeSheet()});$("#modalBackdrop").addEventListener("click",e=>{if(e.target===$("#modalBackdrop"))closeModal()});document.addEventListener("submit",e=>{if(e.target.id==="resultForm"){e.preventDefault();submitResult(e.target)}if(e.target.id==="sales15ProfileForm"){e.preventDefault();submitSales15Profile(e.target)}})}
   async function init(){bind();state.deviceId=getDeviceId();$("#facilityCode").value=CFG.defaultFacilityCode||"dpro_sales";await loadAuthMode();setLoginMode("owner");if(restoreSession()){try{await api("/api/auth/session");await boot();return}catch{saveSession(null)}}showLogin()}
   init();
 })();
