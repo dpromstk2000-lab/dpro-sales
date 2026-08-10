@@ -8,7 +8,7 @@ window.DPRO_CONFIG = Object.freeze({
   indexVersion: "SALES-14-INDEX-20260804",
   ownerVersion: "SALES-17-OWNER-20260810",
   ownerIpadVersion: "SALES-12-OWNER-IPAD-20260804",
-  staffVersion: "SALES-19-STAFF-20260810",
+  staffVersion: "SALES-20-STAFF-20260810",
   teamVersion: "SALES-14-TEAM-20260804",
   systemCheckVersion: "SALES-12-SYSTEM-CHECK-20260804",
   timezone: "Asia/Tokyo"
