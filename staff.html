@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0f233d">
-  <meta name="dpro-version" content="SALES-15-STAFF-R1-20260810">
+  <meta name="dpro-version" content="SALES-16-STAFF-20260810">
   <title>DPRO SALES｜スマホ営業</title>
   <meta name="description" content="DPROシステム専用のスマホ営業・訪問記録・ルート画面">
   <script src="./config.js"></script>
@@ -505,7 +505,7 @@
     toast("今日は手動ルートで進めます");
   }
 
-  async function boot(){showApp();loading(true);try{state.bootstrap=await api("/api/bootstrap");state.session=state.bootstrap.session||state.session;setupMobileSearch();initSmartRoute();await loadAll();renderAll();renderMobileSearch();renderSmartRouteProposal();clearInterval(state.refreshTimer);state.refreshTimer=setInterval(()=>refresh().catch(()=>{}),30000)}catch(err){toast(err.message,"error")}finally{loading(false)}}
+  async function boot(){showApp();loading(true);try{state.bootstrap=await api("/api/bootstrap");state.session=state.bootstrap.session||state.session;setupMobileSearch();initSmartRoute();await loadAll();renderAll();renderMobileSearch();renderSmartRouteProposal();const directProspect=new URLSearchParams(location.search).get("prospect");if(directProspect&&/^[0-9a-f-]{36}$/i.test(directProspect))setTimeout(()=>openDetail(directProspect),120);clearInterval(state.refreshTimer);state.refreshTimer=setInterval(()=>refresh().catch(()=>{}),30000)}catch(err){toast(err.message,"error")}finally{loading(false)}}
   async function loadAll(){const date=today();const [q,o,f,a]=await Promise.all([api(`/api/sales-queue?date=${date}`),api(`/api/follow-ups/overview?date=${date}`),api(`/api/follow-ups?scope=${state.scope}&date=${date}&limit=100`),api("/api/activities?limit=50")]);state.queue=q.queueItems||[];state.route=[...state.queue].sort((a,b)=>(a.queue_order||0)-(b.queue_order||0));state.overview=o.overview||{};state.followups=f.items||f.followUps||[];state.activities=a.activities||[]}
   async function refresh(){loading(true);try{await loadAll();renderAll();toast("最新情報へ更新しました")}catch(e){toast(e.message,"error")}finally{loading(false)}}
   function multiStaffEnabled(){return state.bootstrap?.capabilities?.multiStaffEnabled===true}
