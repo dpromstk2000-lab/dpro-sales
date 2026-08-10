@@ -1,0 +1,17 @@
+{
+  "step": "SALES-15-GITHUB-R1",
+  "checks": {
+    "sales15OwnerSupport": true,
+    "sales15StaffSupport": true,
+    "staffOpportunityUi": true,
+    "routePreserved": true,
+    "claimPreserved": true,
+    "sessionV3": true,
+    "ownerVersionR1": true,
+    "staffVersionR1": true,
+    "ownerJsSyntax": true,
+    "staffJsSyntax": true
+  },
+  "ownerJsErrors": [],
+  "staffJsErrors": []
+}
