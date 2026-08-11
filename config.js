@@ -6,10 +6,10 @@ window.DPRO_CONFIG = Object.freeze({
   defaultFacilityCode: "dpro_sales",
   sessionStorageKey: "dpro_sales_session_v3",
   indexVersion: "SALES-14-INDEX-20260804",
-  ownerVersion: "SALES-46-OWNER-20260811",
+  ownerVersion: "SALES-47-OWNER-20260811",
   ownerIpadVersion: "SALES-12-OWNER-IPAD-20260804",
-  staffVersion: "SALES-45-STAFF-20260811",
-  teamVersion: "SALES-14-TEAM-20260804",
+  staffVersion: "SALES-47-STAFF-20260811",
+  teamVersion: "SALES-47-TEAM-20260811",
   systemCheckVersion: "SALES-12-SYSTEM-CHECK-20260804",
   timezone: "Asia/Tokyo"
 });
