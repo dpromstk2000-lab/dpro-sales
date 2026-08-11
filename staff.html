@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
   <meta name="color-scheme" content="light">
   <meta name="theme-color" content="#0f233d">
-  <meta name="dpro-version" content="SALES-47-STAFF-20260811">
+  <meta name="dpro-version" content="SALES-48-STAFF-20260811">
+  <meta name="referrer" content="no-referrer">
   <title>DPRO SALES｜スマホ営業</title>
   <meta name="description" content="DPROシステム専用のスマホ営業・訪問記録・ルート画面">
   <script src="./config.js"></script>
@@ -163,7 +164,7 @@
       </div>
       <div id="staffLoginFields" class="hidden">
         <div class="field"><label>スタッフログインID</label><input id="staffLoginId" autocomplete="username" placeholder="例：tanaka"></div>
-        <div class="field"><label>4桁PIN</label><input id="staffPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="1234"></div>
+        <div class="field"><label>4桁PIN</label><input id="staffPin" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="current-password" placeholder="1234"></div>
       </div>
       <button id="loginSubmit" class="btn btn-primary btn-block" type="submit">管理コードでログイン</button>
       <div id="loginNote" class="login-note">現在は1人運用です。施設コード <b>dpro_sales</b>、管理コード <b>0206</b> を使用します。</div>
@@ -323,10 +324,13 @@
   const placeText=p=>p?.address||[p?.prefecture,p?.city,p?.area].filter(Boolean).join("")||p?.business_name||"営業先";
   const mapsUrl=p=>p?.google_maps_url||`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(placeText(p))}${p?.place_id?`&query_place_id=${encodeURIComponent(p.place_id)}`:""}`;
   function saveSession(data){state.token=data?.token||null;state.session=data?.session||null;if(data)localStorage.setItem(CFG.sessionStorageKey,JSON.stringify(data));else localStorage.removeItem(CFG.sessionStorageKey)}
-  function restoreSession(){try{const d=JSON.parse(localStorage.getItem(CFG.sessionStorageKey)||"null");if(!d?.token)return false;state.token=d.token;state.session=d.session;return true}catch{return false}}
+  function sales48SessionExpired(expiresAt,now=Date.now()){if(!expiresAt)return false;const t=new Date(expiresAt).getTime();return Number.isFinite(t)&&t<=now}
+  function restoreSession(){try{const d=JSON.parse(localStorage.getItem(CFG.sessionStorageKey)||"null");if(!d?.token)return false;if(sales48SessionExpired(d.expiresAt)){saveSession(null);return false}state.token=d.token;state.session=d.session;return true}catch{return false}}
   function loading(on){$("#loading").classList.toggle("hidden",!on)}
   let toastTimer;function toast(msg,type=""){const el=$("#toast");el.textContent=msg;el.className=`toast show ${type}`;clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.className="toast",2700)}
-  async function api(path,{method="GET",body=null}={}){const headers={Accept:"application/json"};if(body!==null)headers["Content-Type"]="application/json; charset=utf-8";if(state.token)headers.Authorization=`Bearer ${state.token}`;let res;try{res=await fetch(CFG.apiBaseUrl+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store",credentials:"omit"})}catch{throw new Error("APIへ接続できません。通信環境を確認してください。")};let d={};try{d=await res.json()}catch{}if(!res.ok||d.ok===false){if(res.status===401){saveSession(null);showLogin()}throw new Error(d.message||d.error||`APIエラー (${res.status})`)}return d}
+  const sales48PendingMutations=new Map();
+  function sales48MutationKey(method,path,body){return `${String(method||"GET").toUpperCase()}:${path}:${body===null?"":JSON.stringify(body)}`}
+  async function api(path,{method="GET",body=null}={}){const verb=String(method||"GET").toUpperCase(),mutation=verb!=="GET"&&verb!=="HEAD",key=mutation?sales48MutationKey(verb,path,body):"";if(mutation&&sales48PendingMutations.has(key))return sales48PendingMutations.get(key);const run=(async()=>{const headers={Accept:"application/json"};if(body!==null)headers["Content-Type"]="application/json; charset=utf-8";if(state.token)headers.Authorization=`Bearer ${state.token}`;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);let res;try{res=await fetch(CFG.apiBaseUrl+path,{method:verb,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store",credentials:"omit",signal:controller.signal})}catch(e){if(e?.name==="AbortError")throw new Error("APIの応答が20秒を超えました。通信状況を確認して、もう一度実行してください。");throw new Error("APIへ接続できません。通信環境を確認してください。")}finally{clearTimeout(timer)}let d={};try{d=await res.json()}catch{}if(!res.ok||d.ok===false){if(res.status===401){if(state.token){saveSession(null);showLogin();throw new Error("ログインの有効期限が切れました。もう一度ログインしてください。")}throw new Error(d.message||d.error||"認証に失敗しました。")}if(res.status===403)throw new Error(d.message||d.error||"この操作を行う権限がありません。");throw new Error(d.message||d.error||`APIエラー (${res.status})`)}return d})();if(!mutation)return run;sales48PendingMutations.set(key,run);try{return await run}finally{sales48PendingMutations.delete(key)}}
   function getDeviceId(){
     let id=localStorage.getItem("dpro_sales_device_id");
     if(!id){id=crypto.randomUUID?crypto.randomUUID():`device-${Date.now()}-${Math.random()}`;localStorage.setItem("dpro_sales_device_id",id)}

@@ -4,7 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="robots" content="noindex,nofollow">
-  <meta name="dpro-version" content="SALES-47-TEAM-20260811">
+  <meta name="dpro-version" content="SALES-48-TEAM-20260811">
+  <meta name="referrer" content="no-referrer">
   <title>DPRO SALES｜スタッフ設定</title>
   <script src="./config.js"></script>
   <style>
@@ -30,8 +31,8 @@
     <p style="font-size:12px;color:var(--muted);line-height:1.7">スタッフ設定は管理者だけが変更できます。</p>
     <div id="loginError" class="error hidden"></div>
     <form id="loginForm">
-      <div class="field"><label>施設コード</label><input id="facilityCode" value="dpro_sales" required></div>
-      <div class="field"><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" maxlength="4" placeholder="0206" required></div>
+      <div class="field"><label>施設コード</label><input id="facilityCode" value="dpro_sales" autocomplete="username" autocapitalize="none" spellcheck="false" required></div>
+      <div class="field"><label>管理コード</label><input id="adminCode" type="password" inputmode="numeric" maxlength="4" autocomplete="current-password" placeholder="0206" required></div>
       <button class="btn primary" style="width:100%" type="submit">ログイン</button>
     </form>
   </section>
@@ -63,7 +64,7 @@
           <div class="field"><label>スタッフコード</label><input name="staffCode" placeholder="STAFF01" required></div>
           <div class="field"><label>表示名</label><input name="displayName" placeholder="田中" required></div>
           <div class="field"><label>ログインID</label><input name="loginId" placeholder="tanaka" required></div>
-          <div class="field"><label>4桁PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="1234" required></div>
+          <div class="field"><label>4桁PIN</label><input name="pin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="1234" required></div>
           <div class="field"><label>権限</label><select name="role"><option value="sales">営業スタッフ</option><option value="manager">営業責任者</option><option value="viewer">閲覧のみ</option></select></div>
           <div style="display:flex;align-items:end"><button class="btn primary" style="width:100%" type="submit">スタッフを登録</button></div>
         </div>
@@ -84,14 +85,25 @@
   let settings={};
   let staff=[];
 
+  const sales48PendingMutations=new Map();
+  function sales48MutationKey(method,path,body){return `${String(method||"GET").toUpperCase()}:${path}:${body===null?"":JSON.stringify(body)}`}
   async function api(path,{method="GET",body=null}={}){
-    const headers={Accept:"application/json"};
-    if(body!==null)headers["Content-Type"]="application/json";
-    if(token)headers.Authorization="Bearer "+token;
-    const response=await fetch(CFG.apiBaseUrl+path,{method,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store"});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok||data.ok===false)throw new Error(data.message||data.error||"処理に失敗しました");
-    return data;
+    const verb=String(method||"GET").toUpperCase(),mutation=verb!=="GET"&&verb!=="HEAD",key=mutation?sales48MutationKey(verb,path,body):"";
+    if(mutation&&sales48PendingMutations.has(key))return sales48PendingMutations.get(key);
+    const run=(async()=>{
+      const headers={Accept:"application/json"};
+      if(body!==null)headers["Content-Type"]="application/json";
+      if(token)headers.Authorization="Bearer "+token;
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+      let response;
+      try{response=await fetch(CFG.apiBaseUrl+path,{method:verb,headers,body:body===null?undefined:JSON.stringify(body),cache:"no-store",credentials:"omit",signal:controller.signal})}
+      catch(e){if(e?.name==="AbortError")throw new Error("APIの応答が20秒を超えました。通信状況を確認して、もう一度実行してください。");throw new Error("APIへ接続できません。通信環境を確認してください。")}
+      finally{clearTimeout(timer)}
+      const data=await response.json().catch(()=>({}));
+      if(!response.ok||data.ok===false){if(response.status===401){if(token){token="";$("#app").classList.add("hidden");$("#loginPage").classList.remove("hidden");throw new Error("ログインの有効期限が切れました。もう一度ログインしてください。")}throw new Error(data.message||data.error||"認証に失敗しました。")}if(response.status===403)throw new Error(data.message||data.error||"この操作を行う権限がありません。");throw new Error(data.message||data.error||"処理に失敗しました")}
+      return data;
+    })();
+    if(!mutation)return run;sales48PendingMutations.set(key,run);try{return await run}finally{sales48PendingMutations.delete(key)}
   }
   function showError(message){$("#loginError").textContent=message;$("#loginError").classList.remove("hidden")}
   function toast(message){alert(message)}
@@ -147,6 +159,7 @@
     toast("PINを変更しました");
   }
   async function changeActive(id,next){
+    if(!next&&!confirm("このスタッフを停止しますか？停止後はスタッフログインできなくなります。"))return;
     await api(`/api/staff/${id}`,{method:"PATCH",body:{isActive:next}});
     await loadAll();
   }
