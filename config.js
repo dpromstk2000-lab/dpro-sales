@@ -10,6 +10,6 @@ window.DPRO_CONFIG = Object.freeze({
   ownerIpadVersion: "SALES-12-OWNER-IPAD-20260804",
   staffVersion: "SALES-48-STAFF-20260811",
   teamVersion: "SALES-48-TEAM-20260811",
-  systemCheckVersion: "SALES-12-SYSTEM-CHECK-20260804",
+  systemCheckVersion: "SALES-49-SYSTEM-CHECK-20260811",
   timezone: "Asia/Tokyo"
 });
