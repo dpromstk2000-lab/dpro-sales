@@ -6,7 +6,7 @@ window.DPRO_CONFIG = Object.freeze({
   defaultFacilityCode: "dpro_sales",
   sessionStorageKey: "dpro_sales_session_v3",
   indexVersion: "SALES-14-INDEX-20260804",
-  ownerVersion: "SALES-27-OWNER-20260810",
+  ownerVersion: "SALES-46-OWNER-20260811",
   ownerIpadVersion: "SALES-12-OWNER-IPAD-20260804",
   staffVersion: "SALES-45-STAFF-20260811",
   teamVersion: "SALES-14-TEAM-20260804",

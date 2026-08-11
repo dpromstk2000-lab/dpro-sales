@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="dpro-version" content="SALES-46-OWNER-20260811">
   <meta name="color-scheme" content="light">
   <title>DPRO SALES｜営業管理</title>
   <meta name="description" content="DPROシステム専用の営業先検索・営業キュー・フォローアップ管理画面">
@@ -105,6 +106,29 @@
     .sales23-panel{margin-bottom:16px}.sales23-top{display:grid;grid-template-columns:220px 1fr;gap:14px;padding:16px}.sales23-scorebox{border:1px solid #cde7dc;background:#f3fbf7;border-radius:15px;padding:14px}.sales23-scorebox span{display:block;font-size:11px;color:#60776d}.sales23-scorebox b{display:block;font-size:30px;color:#08764e;margin:5px 0}.sales23-scorebox small{font-size:10px;color:#6d7d76}.sales23-list{display:grid;gap:8px}.sales23-item{display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;border:1px solid #e3e9ed;border-radius:13px;padding:10px 12px;background:#fff}.sales23-rank{width:34px;height:34px;border-radius:10px;background:#eef5f8;display:flex;align-items:center;justify-content:center;font-weight:900;color:#173d5d}.sales23-item h4{margin:0 0 3px;font-size:13px;color:#173d5d}.sales23-item p{margin:0;font-size:10px;color:#6d7b88}.sales23-score{font-size:11px;font-weight:900;color:#08764e;background:#e8f8f0;border-radius:999px;padding:5px 8px}.sales23-actions{display:flex;gap:7px;flex-wrap:wrap;padding:0 16px 16px}.sales23-empty{padding:24px;text-align:center;color:#758391}@media(max-width:900px){.sales23-top{grid-template-columns:1fr}.sales23-item{grid-template-columns:36px 1fr}.sales23-score{grid-column:2;justify-self:start}}
 
     .sales27-panel{margin-top:16px}.sales27-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:16px}.sales27-metric{border:1px solid #e1e8ed;background:#fff;border-radius:14px;padding:12px}.sales27-metric span{display:block;font-size:10px;color:#6d7b88}.sales27-metric b{display:block;font-size:22px;margin:4px 0;color:#143b5e}.sales27-table-wrap{overflow:auto}.sales27-table{width:100%;min-width:980px;border-collapse:collapse}.sales27-table th,.sales27-table td{padding:10px 11px;border-top:1px solid #edf1f4;text-align:left;font-size:11px;vertical-align:middle}.sales27-table th{background:#f7f9fb;color:#62717d;font-size:10px}.sales27-pattern{font-weight:800;color:#08764e}.sales27-links{display:flex;gap:5px;flex-wrap:wrap}.sales27-links a{font-size:10px}.sales27-none{padding:28px;text-align:center;color:#758391}@media(max-width:900px){.sales27-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+    /* SALES-46: PC総合営業管理 */
+    .sales46-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;margin-bottom:17px}
+    .sales46-kpi{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 4px 15px rgba(15,35,61,.035)}
+    .sales46-kpi span{display:block;font-size:10px;color:var(--muted);font-weight:750}
+    .sales46-kpi b{display:block;font-size:28px;line-height:1.1;margin:7px 0 4px;letter-spacing:-.04em;color:#173d5d}
+    .sales46-kpi small{font-size:10px;color:#8390a1;line-height:1.45}
+    .sales46-kpi.alert b{color:var(--red)}.sales46-kpi.good b{color:var(--green)}.sales46-kpi.blue b{color:var(--blue)}.sales46-kpi.purple b{color:var(--purple)}.sales46-kpi.amber b{color:var(--amber)}
+    .sales46-manager{background:linear-gradient(135deg,#102a47,#165d55);color:#fff;border-radius:18px;padding:17px 19px;margin-bottom:17px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 10px 26px rgba(15,35,61,.13)}
+    .sales46-manager strong{display:block;font-size:15px}.sales46-manager p{margin:5px 0 0;font-size:11px;line-height:1.65;color:#d8e6e7}.sales46-manager .badge{background:rgba(255,255,255,.13);color:#fff}
+    .sales46-priority-list{display:grid}.sales46-priority{display:grid;grid-template-columns:46px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 16px;border-bottom:1px solid #edf1f4}.sales46-priority:last-child{border-bottom:0}
+    .sales46-rank{width:38px;height:38px;border-radius:12px;background:#edf4f7;display:grid;place-items:center;font-weight:900;color:#173d5d}
+    .sales46-priority.urgent .sales46-rank{background:var(--red-bg);color:var(--red)}.sales46-priority.high .sales46-rank{background:var(--amber-bg);color:var(--amber)}
+    .sales46-priority h4{margin:0 0 4px;font-size:13px}.sales46-priority p{margin:0;color:var(--muted);font-size:10px;line-height:1.5}.sales46-priority .meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+    .sales46-priority-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .sales46-pipeline{display:grid;gap:9px}.sales46-stage{border:1px solid #e1e8ee;border-radius:13px;padding:11px 12px;background:#fff}.sales46-stage-top{display:flex;justify-content:space-between;gap:10px;align-items:center}.sales46-stage-top b{font-size:12px}.sales46-stage-top strong{font-size:18px;color:#173d5d}.sales46-bar{height:7px;background:#edf2f5;border-radius:999px;overflow:hidden;margin-top:8px}.sales46-bar span{display:block;height:100%;background:linear-gradient(90deg,#138a66,#2878d0);border-radius:999px}
+    .sales46-channel-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.sales46-channel{border:1px solid #e2e9ee;border-radius:13px;padding:12px;background:#fff}.sales46-channel span{font-size:10px;color:#718092;display:block}.sales46-channel b{font-size:20px;display:block;margin-top:4px;color:#173d5d}
+    .sales46-month-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}.sales46-month{background:#f7f9fb;border-radius:13px;padding:12px}.sales46-month span{font-size:10px;color:#718092;display:block}.sales46-month b{font-size:20px;display:block;margin-top:4px}
+    .sales46-table-wrap{overflow:auto}.sales46-table{width:100%;min-width:760px;border-collapse:collapse}.sales46-table th,.sales46-table td{padding:10px 12px;border-top:1px solid #edf1f4;text-align:left;font-size:11px}.sales46-table th{background:#f7f9fb;color:#657487;font-size:10px}.sales46-table td.name{font-weight:800;color:#173d5d}.sales46-table .rate{font-weight:800;color:#08764e}
+    .sales46-note{margin-top:14px;font-size:10px;color:#7c8999;line-height:1.65}
+    @media(max-width:1250px){.sales46-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.sales46-channel-grid,.sales46-month-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+    @media(max-width:760px){.sales46-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.sales46-manager{display:block}.sales46-manager .badge{display:inline-flex;margin-top:10px}.sales46-priority{grid-template-columns:40px 1fr}.sales46-priority-actions{grid-column:2;justify-content:flex-start}.sales46-channel-grid,.sales46-month-grid{grid-template-columns:1fr 1fr}}
+
 </style>
 </head>
 <body>
@@ -134,6 +158,7 @@
         <nav class="nav">
           <div class="nav-label">TODAY</div>
           <button class="nav-btn active" data-view="dashboard"><span class="nav-icon">⌂</span>今日の営業<span id="navTodayCount" class="nav-count">0</span></button>
+          <button class="nav-btn" data-view="control"><span class="nav-icon">◎</span>総合営業管理<span id="navControlCount" class="nav-count">0</span></button>
           <button class="nav-btn" data-view="queue"><span class="nav-icon">☑</span>営業キュー<span id="navQueueCount" class="nav-count">0</span></button>
           <button class="nav-btn" data-view="followups"><span class="nav-icon">↻</span>フォローアップ<span id="navOverdueCount" class="nav-count">0</span></button>
           <div class="nav-label">SALES</div>
@@ -158,6 +183,29 @@
         </header>
 
         <div class="content">
+          <section id="view-control" class="view">
+            <div class="page-head"><div><h2>総合営業管理</h2><p>スマホ営業・LINE・商談・紹介・成約を横断し、管理者が今見るべき状態を一画面にまとめます。</p></div><div class="head-actions"><a class="btn btn-outline" href="staff.html" target="_blank" rel="noopener">スマホ営業を開く</a><button class="btn btn-outline" data-go="lineoutreach">LINE営業</button><button class="btn btn-primary" data-go="analytics">営業分析</button></div></div>
+            <div id="sales46Manager" class="sales46-manager"><div><strong>営業状況を集計しています</strong><p>期限超過・返信・商談・LINE送信準備を優先順に確認します。</p></div><span class="badge">SALES-46</span></div>
+            <div class="sales46-kpis">
+              <div class="sales46-kpi blue"><span>営業中</span><b id="sales46Active">0</b><small>契約・見送り・対象外を除く</small></div>
+              <div class="sales46-kpi good"><span>LINE送信OK</span><b id="sales46LineReady">0</b><small>提案向き＋LP準備済み＋未送信</small></div>
+              <div class="sales46-kpi purple"><span>返信・商談</span><b id="sales46ReplyMeeting">0</b><small>LINE返信あり・商談</small></div>
+              <div class="sales46-kpi good"><span>成約</span><b id="sales46Won">0</b><small>現在の契約ステージ</small></div>
+              <div class="sales46-kpi amber"><span>紹介案件</span><b id="sales46Referral">0</b><small>紹介経由で登録された営業先</small></div>
+              <div class="sales46-kpi alert"><span>期限超過</span><b id="sales46Overdue">0</b><small>最優先で確認</small></div>
+            </div>
+            <div class="grid-2" style="margin-bottom:17px">
+              <div class="panel"><div class="panel-head"><div><h3>今すぐ対応</h3><span class="hint">期限超過 → 返信 → 商談 → 紹介 → LINE送信準備の順で整理</span></div><button class="btn btn-outline btn-sm" data-go="followups">フォロー管理</button></div><div id="sales46PriorityList" class="sales46-priority-list"></div></div>
+              <div class="panel"><div class="panel-head"><div><h3>現在の営業パイプライン</h3><span class="hint">営業中と最終結果を現在値で確認</span></div><button class="btn btn-outline btn-sm" data-go="pipeline">パイプライン</button></div><div id="sales46Pipeline" class="panel-body"></div></div>
+            </div>
+            <div class="grid-equal" style="margin-bottom:17px">
+              <div class="panel"><div class="panel-head"><div><h3>営業チャネル状況</h3><span class="hint">LINE・紹介・営業素材の現在値</span></div></div><div class="panel-body"><div class="sales46-channel-grid"><div class="sales46-channel"><span>LINE返信待ち</span><b id="sales46Waiting">0</b></div><div class="sales46-channel"><span>LINE商談</span><b id="sales46Meeting">0</b></div><div class="sales46-channel"><span>紹介営業中</span><b id="sales46ReferralActive">0</b></div><div class="sales46-channel"><span>営業素材3点OK</span><b id="sales46MaterialsReady">0</b></div></div></div></div>
+              <div class="panel"><div class="panel-head"><div><h3>今月の営業実績</h3><span id="sales46MonthLabel" class="hint">今月</span></div><button class="btn btn-outline btn-sm" data-go="analytics">詳細分析</button></div><div class="panel-body"><div class="sales46-month-grid"><div class="sales46-month"><span>活動</span><b id="sales46MonthActivity">0</b></div><div class="sales46-month"><span>訪問</span><b id="sales46MonthVisit">0</b></div><div class="sales46-month"><span>オーナー接触</span><b id="sales46MonthContact">0</b></div><div class="sales46-month"><span>契約</span><b id="sales46MonthWon">0</b></div></div></div></div>
+            </div>
+            <div class="panel"><div class="panel-head"><div><h3>今月の商品別営業状況</h3><span class="hint">売上推測ではなく、候補・訪問・接触・契約の実績で表示</span></div><button class="btn btn-outline btn-sm" data-go="salesmaterials">営業素材管理</button></div><div id="sales46ProductTable" class="sales46-table-wrap"></div></div>
+            <p class="sales46-note">この画面は管理・判断専用です。表示しただけではLINE送信、営業ステージ、次回予定、契約状態を変更しません。実際の営業操作は各専用画面で明示的に実行してください。</p>
+          </section>
+
           <section id="view-dashboard" class="view active">
             <div class="page-head"><div><h2>今日の営業</h2><p id="dashboardDateLabel">今日の予定、期限超過、営業キューをまとめて表示します。</p></div><div class="head-actions"><button class="btn btn-outline" data-go="analytics">営業分析</button><button class="btn btn-primary" data-go="search">＋ 営業先を探す</button></div></div>
             <div class="metric-grid">
@@ -355,11 +403,11 @@
   <script>
   (()=>{
     "use strict";
-    const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",defaultFacilityCode:"dpro_sales",sessionStorageKey:"dpro_sales_session_v1",ownerVersion:"SALES-27-OWNER-20260810"};
+    const CFG=window.DPRO_CONFIG||{apiBaseUrl:"https://dpro-sales-line-api.dpromstk2000.workers.dev",defaultFacilityCode:"dpro_sales",sessionStorageKey:"dpro_sales_session_v1",ownerVersion:"SALES-46-OWNER-20260811"};
     const MOCK=new URLSearchParams(location.search).get("mock")==="1";
     const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
-    const state={token:null,session:null,facility:null,staff:[],products:[],campaigns:[],dashboard:null,queue:[],followOverview:{},followups:[],prospects:[],activities:[],searchRun:null,searchResults:[],selectedResults:new Set(),analytics:null,sales16Prospects:[],sales17Drafts:new Map(),activeView:"dashboard",loading:0};
-    const viewMeta={dashboard:["今日の営業","今日やることを優先順に確認します"],queue:["営業キュー","今日実際に動く店舗を管理します"],followups:["フォローアップ","期限超過と再訪予定を管理します"],campaigns:["営業キャンペーン","商品と地域ごとに営業をまとめます"],search:["候補を探す","Google Placesから営業候補を見つけます"],pipeline:["営業パイプライン","候補から契約までを確認します"],analytics:["営業分析","商品・地域・キャンペーン別の成果を確認します"],activities:["活動履歴","営業活動を時系列で確認します"],lineoutreach:["LINE営業候補","LINE公式利用店舗へ業種別LPを送る候補を確認します"],salesmaterials:["営業素材一括管理","LP・DEMO・提案書をまとめて登録します"],products:["DPRO商品","営業トークと提案資料を確認します"]};
+    const state={token:null,session:null,facility:null,staff:[],products:[],campaigns:[],dashboard:null,queue:[],followOverview:{},followups:[],prospects:[],activities:[],searchRun:null,searchResults:[],selectedResults:new Set(),analytics:null,sales16Prospects:[],sales17Drafts:new Map(),sales46:null,activeView:"dashboard",loading:0};
+    const viewMeta={control:["総合営業管理","スマホ・LINE・商談・紹介・成約を横断して確認します"],dashboard:["今日の営業","今日やることを優先順に確認します"],queue:["営業キュー","今日実際に動く店舗を管理します"],followups:["フォローアップ","期限超過と再訪予定を管理します"],campaigns:["営業キャンペーン","商品と地域ごとに営業をまとめます"],search:["候補を探す","Google Placesから営業候補を見つけます"],pipeline:["営業パイプライン","候補から契約までを確認します"],analytics:["営業分析","商品・地域・キャンペーン別の成果を確認します"],activities:["活動履歴","営業活動を時系列で確認します"],lineoutreach:["LINE営業候補","LINE公式利用店舗へ業種別LPを送る候補を確認します"],salesmaterials:["営業素材一括管理","LP・DEMO・提案書をまとめて登録します"],products:["DPRO商品","営業トークと提案資料を確認します"]};
     const stageLabel={new:"未確認",qualified:"営業候補",planned:"予定",visited_absent:"オーナー不在",contacted:"オーナーと会話",material_delivered:"資料手渡し",demo_sent:"デモ案内",revisit_scheduled:"再訪予定",quote_sent:"見積提出",considering:"検討中",won:"契約",lost:"見送り",excluded:"対象外"};
     const actionLabel={visit:"訪問",phone:"電話",line:"LINE",email:"メール",material:"資料送付",demo:"デモ",quote:"見積",reply_check:"返答確認",other:"その他"};
     const activityLabel={visit:"訪問",phone:"電話",line:"LINE",email:"メール",material:"資料",demo:"デモ",quote:"見積",status_change:"状態変更",note:"メモ",other:"その他"};
@@ -384,8 +432,90 @@
     async function boot(){setLoading(true);try{const data=await api("/api/bootstrap");state.facility=data.facility;state.staff=arr(data.staff);state.products=arr(data.products);state.campaigns=arr(data.campaigns);state.dashboard=data.dashboard;state.session=data.session||state.session;showApp();fillMasters();renderUser();await loadDashboard(false);navigate("dashboard")}catch(e){saveSession(null);showLogin();toast(e.message,"error")}finally{setLoading(false)}}
     function renderUser(){$("#sidebarUser").textContent=state.session?.role==="owner"?"管理者":"営業担当";$("#sidebarFacility").textContent=state.facility?.facility_name||state.session?.facilityName||"DPRO SALES"}
     function fillMasters(){const prodOpts=state.products.filter(x=>x.is_active!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.product_name)}</option>`).join("");$("#searchProduct").innerHTML='<option value="">商品を選択</option>'+prodOpts;const campOpts=state.campaigns.map(x=>`<option value="${esc(x.id)}">${esc(x.campaign_name)}</option>`).join("");["#searchCampaign","#pipelineCampaign","#analyticsCampaign"].forEach((s,i)=>$(s).innerHTML=`<option value="">${i?"全キャンペーン":"指定なし"}</option>`+campOpts);const staffOpts=state.staff.filter(x=>x.is_active!==false).map(x=>`<option value="${esc(x.id)}">${esc(x.display_name)}</option>`).join("");["#queueStaff","#followStaff","#analyticsStaff"].forEach(s=>$(s).innerHTML='<option value="">全担当者</option>'+staffOpts);$("#analyticsProduct").innerHTML='<option value="">全商品</option>'+prodOpts;const cats=[...new Set(state.products.map(x=>x.category).filter(Boolean))].sort();$("#productCategory").innerHTML='<option value="">全カテゴリ</option>'+cats.map(x=>`<option>${esc(x)}</option>`).join("");const s17=$("#sales17Category");if(s17)s17.innerHTML='<option value="">全カテゴリ</option>'+cats.map(x=>`<option>${esc(x)}</option>`).join("")}
-    function navigate(view){state.activeView=view;$$('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${view}`));$$('.nav-btn[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));const m=viewMeta[view]||[view,""];$("#topTitle").textContent=m[0];$("#topSubtitle").textContent=m[1];$("#sidebar").classList.remove("open");if(view==="queue")loadQueue();if(view==="followups")loadFollowups();if(view==="campaigns")renderCampaigns();if(view==="pipeline")loadPipeline();if(view==="lineoutreach")loadSales16();if(view==="salesmaterials")renderSales17();if(view==="analytics")loadAnalytics();if(view==="activities")loadActivities();if(view==="products")renderProducts()}
-    async function refreshActive(){if(state.activeView==="dashboard")await loadDashboard();else if(state.activeView==="queue")await loadQueue();else if(state.activeView==="followups")await loadFollowups();else if(state.activeView==="campaigns"){const d=await api("/api/campaigns");state.campaigns=arr(d.campaigns);fillMasters();renderCampaigns()}else if(state.activeView==="pipeline")await loadPipeline();else if(state.activeView==="salesmaterials"){const d=await api("/api/products");state.products=arr(d.products);state.sales17Drafts.clear();fillMasters();renderSales17()}else if(state.activeView==="analytics")await loadAnalytics();else if(state.activeView==="activities")await loadActivities();else if(state.activeView==="products"){const d=await api("/api/products");state.products=arr(d.products);fillMasters();renderProducts()}}
+    function navigate(view){state.activeView=view;$$('.view').forEach(x=>x.classList.toggle('active',x.id===`view-${view}`));$$('.nav-btn[data-view]').forEach(x=>x.classList.toggle('active',x.dataset.view===view));const m=viewMeta[view]||[view,""];$("#topTitle").textContent=m[0];$("#topSubtitle").textContent=m[1];$("#sidebar").classList.remove("open");if(view==="control")loadSales46();if(view==="queue")loadQueue();if(view==="followups")loadFollowups();if(view==="campaigns")renderCampaigns();if(view==="pipeline")loadPipeline();if(view==="lineoutreach")loadSales16();if(view==="salesmaterials")renderSales17();if(view==="analytics")loadAnalytics();if(view==="activities")loadActivities();if(view==="products")renderProducts()}
+    async function refreshActive(){if(state.activeView==="control")await loadSales46();else if(state.activeView==="dashboard")await loadDashboard();else if(state.activeView==="queue")await loadQueue();else if(state.activeView==="followups")await loadFollowups();else if(state.activeView==="campaigns"){const d=await api("/api/campaigns");state.campaigns=arr(d.campaigns);fillMasters();renderCampaigns()}else if(state.activeView==="pipeline")await loadPipeline();else if(state.activeView==="lineoutreach")await loadSales16();else if(state.activeView==="salesmaterials"){const d=await api("/api/products");state.products=arr(d.products);state.sales17Drafts.clear();fillMasters();renderSales17()}else if(state.activeView==="analytics")await loadAnalytics();else if(state.activeView==="activities")await loadActivities();else if(state.activeView==="products"){const d=await api("/api/products");state.products=arr(d.products);fillMasters();renderProducts()}}
+
+    function sales46Field(o,a,b){return o?.[a]??o?.[b]??0}
+    function sales46SourceType(p){return String(p?.source_type||p?.sourceType||"direct")}
+    function sales46Final(p){return ["won","lost","excluded"].includes(p?.pipeline_stage)}
+    function sales46MonthStart(date=today()){return `${String(date).slice(0,7)}-01`}
+    function sales46PriorityItems(prospects,dashboard){
+      const byId=new Map();
+      const add=(p,priority,title,detail,go,kind="")=>{if(!p?.id)return;const cur=byId.get(p.id);if(cur&&cur.priority>=priority)return;byId.set(p.id,{p,priority,title,detail,go,kind})};
+      arr(dashboard?.overdue).forEach(a=>{const p=a.prospect||prospects.find(x=>x.id===a.prospect_id);if(p)add(p,100,"期限超過のフォロー",`${fmtDate(a.due_date)} ${a.description||a.action_description||"未完了の次回予定"}`,"followups","urgent")});
+      prospects.filter(p=>!sales46Final(p)).forEach(p=>{
+        const x=sales16Profile(p),line=x.lineStatus||"not_sent",stage=p.pipeline_stage||"new",prod=sales16Product(p);
+        if(line==="meeting")add(p,96,"LINE商談の対応","商談状態です。次の約束・結果記録を確認します。","lineoutreach","urgent");
+        else if(line==="replied")add(p,92,"LINE返信への対応","返信あり。放置せず内容確認と次の提案へ進めます。","lineoutreach","urgent");
+        if(stage==="quote_sent")add(p,90,"見積提出後のフォロー","見積提出済み。返答確認と次回予定を確認します。","pipeline","high");
+        else if(stage==="considering")add(p,88,"検討中案件のフォロー","検討中です。次回連絡日と判断材料を確認します。","pipeline","high");
+        if(sales46SourceType(p)==="referral")add(p,84,"紹介案件のフォロー","紹介経由の営業先です。紹介元への経過報告も忘れず確認します。","pipeline","high");
+        if(sales16Opportunity(p)&&sales16LpReady(prod)&&line==="not_sent")add(p,76,"LINE送信準備OK","提案向き・営業LP準備済み・未送信です。","lineoutreach","");
+        if(["sent","waiting"].includes(line))add(p,68,"LINE返信待ち","送信済みです。返信確認のタイミングを見落とさないようにします。","lineoutreach","");
+        if(!x.researchCheckedAt||x.lineOfficialStatus==="unknown"||!x.lineOfficialStatus||x.websiteStatus==="unknown"||!x.websiteStatus)add(p,56,"営業前調査","LINE公式・HP・確認根拠の調査に未確認項目があります。","lineoutreach","");
+      });
+      return [...byId.values()].sort((a,b)=>b.priority-a.priority||num(b.p.total_score)-num(a.p.total_score)).slice(0,8)
+    }
+    function sales46ManagerText(d){
+      if(d.overdue>0)return `期限超過が ${d.overdue}件あります。まず期限超過を処理してから返信・商談へ進むのがおすすめです。`;
+      if(d.replyMeeting>0)return `返信・商談が ${d.replyMeeting}件あります。新規送信より先に、反応が返っている営業先を進めます。`;
+      if(d.lineReady>0)return `LINE送信準備が整った候補が ${d.lineReady}件あります。今日の送信対象を選べます。`;
+      if(d.active>0)return `営業中の候補が ${d.active}件あります。パイプラインと営業前調査を確認してください。`;
+      return "現在、優先対応の営業先はありません。候補検索や営業キャンペーンから新しい営業先を追加できます。"
+    }
+    function sales46RenderPipeline(prospects){
+      const groups=[
+        ["候補・調査",["new","qualified","planned"]],
+        ["接触・提案",["visited_absent","contacted","material_delivered","demo_sent","revisit_scheduled"]],
+        ["見積・検討",["quote_sent","considering"]],
+        ["契約",["won"]],
+        ["見送り・対象外",["lost","excluded"]]
+      ];
+      const total=Math.max(1,prospects.length);
+      $("#sales46Pipeline").innerHTML=`<div class="sales46-pipeline">${groups.map(([label,stages])=>{const count=prospects.filter(p=>stages.includes(p.pipeline_stage)).length;return `<div class="sales46-stage"><div class="sales46-stage-top"><b>${esc(label)}</b><strong>${count}</strong></div><div class="sales46-bar"><span style="width:${Math.min(100,count/total*100)}%"></span></div></div>`}).join("")}</div>`
+    }
+    function sales46RenderPriority(items){
+      $("#navControlCount").textContent=items.length;
+      $("#sales46PriorityList").innerHTML=items.length?items.map((x,i)=>`<div class="sales46-priority ${esc(x.kind)}"><div class="sales46-rank">${i+1}</div><div><h4>${esc(x.title)}｜${esc(x.p.business_name||"営業先")}</h4><p>${esc(x.detail)}</p><div class="meta">${gradeBadge(x.p.priority_grade)}<span class="badge">${esc(stageLabel[x.p.pipeline_stage]||x.p.pipeline_stage||"未確認")}</span>${sales46SourceType(x.p)==="referral"?'<span class="badge badge-amber">紹介</span>':""}</div></div><div class="sales46-priority-actions"><button class="btn btn-outline btn-sm" data-prospect="${esc(x.p.id)}">詳細</button><button class="btn btn-primary btn-sm" data-go="${esc(x.go)}">該当画面</button></div></div>`).join(""):empty("今すぐ対応する案件はありません","期限超過・返信・商談・LINE送信準備が発生するとここへ表示します。","✓")
+    }
+    function sales46RenderProducts(rows){
+      const list=arr(rows).slice().sort((a,b)=>num(sales46Field(b,"wonCount","won_count"))-num(sales46Field(a,"wonCount","won_count"))||num(sales46Field(b,"ownerContactCount","owner_contact_count"))-num(sales46Field(a,"ownerContactCount","owner_contact_count"))||num(sales46Field(b,"candidateCount","candidate_count"))-num(sales46Field(a,"candidateCount","candidate_count"))).slice(0,10);
+      $("#sales46ProductTable").innerHTML=list.length?`<table class="sales46-table"><thead><tr><th>DPRO商品</th><th>候補</th><th>訪問</th><th>接触</th><th>デモ</th><th>見積</th><th>契約</th><th>契約率</th></tr></thead><tbody>${list.map(r=>`<tr><td class="name">${esc(r.productName||r.product_name||"商品")}</td><td>${num(sales46Field(r,"candidateCount","candidate_count"))}</td><td>${num(sales46Field(r,"visitCount","visit_count"))}</td><td>${num(sales46Field(r,"ownerContactCount","owner_contact_count"))}</td><td>${num(sales46Field(r,"demoCount","demo_count"))}</td><td>${num(sales46Field(r,"quoteCount","quote_count"))}</td><td>${num(sales46Field(r,"wonCount","won_count"))}</td><td class="rate">${percent(sales46Field(r,"conversionRate","conversion_rate"))}</td></tr>`).join("")}</tbody></table>`:empty("今月の商品別実績はまだありません","営業活動が蓄積すると商品別に比較できます。","▥")
+    }
+    function renderSales46(){
+      const s=state.sales46||{},prospects=arr(s.prospects),d=s.dashboard||{},fo=s.followOverview||{},a=s.analytics||{},m=a.metrics||{};
+      const active=prospects.filter(p=>!sales46Final(p)),won=prospects.filter(p=>p.pipeline_stage==="won").length,referrals=prospects.filter(p=>sales46SourceType(p)==="referral");
+      const lineReady=active.filter(p=>{const x=sales16Profile(p);return sales16Opportunity(p)&&sales16LpReady(sales16Product(p))&&(x.lineStatus||"not_sent")==="not_sent"}).length;
+      const replyMeeting=active.filter(p=>["replied","meeting"].includes(sales16Profile(p).lineStatus)).length;
+      const waiting=active.filter(p=>["sent","waiting"].includes(sales16Profile(p).lineStatus)).length;
+      const meeting=active.filter(p=>sales16Profile(p).lineStatus==="meeting").length;
+      const referralActive=referrals.filter(p=>!sales46Final(p)).length;
+      const materialReady=state.products.filter(p=>p.is_active!==false).filter(p=>sales16LpReady(p)&&p.demo_url&&p.proposal_url).length;
+      const overdue=num(d.counts?.overdue??fo.overdueCount??arr(d.overdue).length);
+      $("#sales46Active").textContent=active.length;$("#sales46LineReady").textContent=lineReady;$("#sales46ReplyMeeting").textContent=replyMeeting;$("#sales46Won").textContent=won;$("#sales46Referral").textContent=referrals.length;$("#sales46Overdue").textContent=overdue;
+      $("#sales46Waiting").textContent=waiting;$("#sales46Meeting").textContent=meeting;$("#sales46ReferralActive").textContent=referralActive;$("#sales46MaterialsReady").textContent=`${materialReady}/${state.products.filter(p=>p.is_active!==false).length}`;
+      $("#sales46MonthLabel").textContent=`${fmtDate(s.dateFrom)} ～ ${fmtDate(s.dateTo)}`;
+      $("#sales46MonthActivity").textContent=num(m.activityCount).toLocaleString();$("#sales46MonthVisit").textContent=num(m.visitCount).toLocaleString();$("#sales46MonthContact").textContent=num(m.ownerContactCount).toLocaleString();$("#sales46MonthWon").textContent=num(m.wonCount).toLocaleString();
+      const summary={active:active.length,lineReady,replyMeeting,overdue};
+      $("#sales46Manager").innerHTML=`<div><strong>管理者への次の一手</strong><p>${esc(sales46ManagerText(summary))}</p></div><span class="badge">今月 契約 ${num(m.wonCount)}件</span>`;
+      const priority=sales46PriorityItems(prospects,d);sales46RenderPriority(priority);sales46RenderPipeline(prospects);sales46RenderProducts(a.products);
+      $("#navOverdueCount").textContent=overdue;$("#navLineCount").textContent=lineReady
+    }
+    async function loadSales46(spin=true){
+      if(spin)setLoading(true);
+      try{
+        const date=today(),dateFrom=sales46MonthStart(date);
+        const [dashboard,follow,prospectData,analytics]=await Promise.all([
+          api(`/api/dashboard/today?date=${date}`),
+          api(`/api/follow-ups/overview?date=${date}`),
+          api("/api/prospects?limit=500&order=score"),
+          api(`/api/analytics/dashboard?dateFrom=${dateFrom}&dateTo=${date}`)
+        ]);
+        state.sales46={dashboard,followOverview:follow.overview||{},prospects:arr(prospectData.prospects),analytics,dateFrom,dateTo:date};
+        renderSales46()
+      }catch(e){toast(e.message,"error")}finally{if(spin)setLoading(false)}
+    }
+
     async function loadDashboard(spin=true){if(spin)setLoading(true);try{const date=today();const [d,q,f]=await Promise.all([api(`/api/dashboard/today?date=${date}`),api(`/api/sales-queue?date=${date}`),api(`/api/follow-ups/overview?date=${date}`)]);state.dashboard=d;state.queue=arr(q.queueItems);state.followOverview=f.overview||{};renderDashboard()}catch(e){toast(e.message,"error")}finally{if(spin)setLoading(false)}}
     function renderDashboard(){const d=state.dashboard||{},c=d.counts||{},f=state.followOverview||{};$("#metricOverdue").textContent=c.overdue??f.overdueCount??0;$("#metricToday").textContent=c.dueToday??f.todayCount??0;$("#metricQueue").textContent=state.queue.length;$("#metricActive").textContent=c.activeProspects??0;$("#navTodayCount").textContent=c.dueToday??0;$("#navQueueCount").textContent=state.queue.length;$("#navOverdueCount").textContent=c.overdue??0;$("#dashboardDateLabel").textContent=`${fmtDate(d.date||today())} の予定、期限超過、営業キューをまとめて表示します。`;renderQueueCards($("#dashboardQueue"),state.queue.slice(0,5),true);const acts=[...arr(d.overdue),...arr(d.dueToday)].slice(0,6);$("#dashboardActions").innerHTML=acts.length?acts.map(renderActionRow).join(""):empty("優先フォローはありません","次回予定を設定すると、ここへ表示されます。","✓")}
     function renderActionRow(a){const p=a.prospect||{};const overdue=a.due_date&&a.due_date<today();return`<div class="action-row"><div class="action-date ${overdue?'overdue':''}">${overdue?'期限超過 ':''}${esc(fmtDate(a.due_date))}</div><div class="action-main"><strong><button class="link-btn" data-prospect="${esc(a.prospect_id||p.id)}">${esc(p.business_name||a.business_name||"営業先")}</button></strong><small>${esc(a.description||"")}</small></div><div class="action-type">${esc(actionLabel[a.action_type]||a.action_type||"予定")}</div><div class="row-actions"><button class="btn btn-outline btn-sm" data-complete-action="${esc(a.id||a.action_id)}">完了</button></div></div>`}
