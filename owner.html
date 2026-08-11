@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="dpro-version" content="DPRO-SALES-V1.1-5-OWNER-20260811">
+  <meta name="dpro-version" content="DPRO-SALES-V1.1-5-R1-OWNER-20260811">
   <meta name="referrer" content="no-referrer">
   <meta name="color-scheme" content="light">
   <title>DPRO SALES｜営業管理</title>
@@ -322,7 +322,7 @@
           </section>
 
           <section id="view-lineoutreach" class="view">
-            <div class="page-head"><div><h2>営業チャネル候補</h2><p>LINE公式・HP問い合わせ・メール・Instagramなど、店舗ごとに使える営業入口を確認します。</p></div><div class="head-actions"><button id="sales114AutoResearch" class="btn btn-primary">未調査10件を精密確認</button><button id="sales16Reload" class="btn btn-secondary">更新</button><button class="btn btn-outline" data-go="salesmaterials">営業素材を設定</button></div></div>
+            <div class="page-head"><div><h2>営業チャネル候補</h2><p>LINE公式・HP問い合わせ・メール・Instagramなど、店舗ごとに使える営業入口を確認します。</p></div><div class="head-actions"><button id="sales114AutoResearch" class="btn btn-primary">未調査・旧調査10件を精密確認</button><button id="sales16Reload" class="btn btn-secondary">更新</button><button class="btn btn-outline" data-go="salesmaterials">営業素材を設定</button></div></div>
             <div class="metric-grid sales16-metrics">
               <div class="metric good"><div class="label">おすすめ候補</div><div id="sales16OpportunityCount" class="number">0</div><div class="sub">LINE公式あり＋HP弱め</div></div>
               <div class="metric blue"><div class="label">LP準備済み候補</div><div id="sales16ReadyCount" class="number">0</div><div class="sub">すぐ送れる候補</div></div>
@@ -692,11 +692,11 @@
     }
     function sales27ExportText(){const rows=[["店舗名","DPRO商品","確認日","LINE公式","HP","問い合わせ","メール","Instagram","おすすめ営業","自動提案"].join("\t")];sales27Rows().forEach(p=>{const x=sales16Profile(p),prod=sales16Product(p),ch=sales114Channels(p);rows.push([p.business_name||"",prod?.product_name||"",x.autoResearchAt||x.researchCheckedAt||"",x.lineOfficialUrl||"",x.officialWebsiteUrl||p.website_url||"",x.contactFormUrl||"",x.contactEmail||"",x.instagramUrl||"",ch.map(c=>c.label).join(" > "),sales27Proposal(x).label].join("\t"))});return rows.join("\n")}
     async function sales114AutoResearch(){
-      const candidates=state.sales16Prospects.filter(p=>!['won','lost','excluded'].includes(p.pipeline_stage)&&Boolean(sales16Profile(p).officialWebsiteUrl||p.website_url)&&!sales16Profile(p).autoResearchAt).slice(0,10);
-      if(!candidates.length){toast("自動確認できる未調査HPはありません");return}
+      const candidates=state.sales16Prospects.filter(p=>{const x=sales16Profile(p);return !['won','lost','excluded'].includes(p.pipeline_stage)&&Boolean(x.officialWebsiteUrl||p.website_url)&&(!x.autoResearchAt||x.autoResearchStatus!=="checked_public_website_plus_contact"||!x.officialBusinessName)}).slice(0,10);
+      if(!candidates.length){toast("自動確認できる未調査・旧調査HPはありません");return}
       const btn=$("#sales114AutoResearch");btn.disabled=true;setLoading(true);
       let ok=0,fail=0;
-      try{for(let i=0;i<candidates.length;i++){btn.textContent=`自動確認 ${i+1}/${candidates.length}`;const p=candidates[i];try{const d=await api(`/api/prospects/${p.id}/web-research`,{method:"POST",body:{}});p.sales15_profile=d.profile||p.sales15_profile;ok++}catch(e){fail++;console.warn("sales114_research_failed",p.business_name,e)}}renderSales16();toast(`自動確認完了：成功${ok}件${fail?`／確認不可${fail}件`:""}`)}finally{btn.disabled=false;btn.textContent="未調査10件を精密確認";setLoading(false)}
+      try{for(let i=0;i<candidates.length;i++){btn.textContent=`自動確認 ${i+1}/${candidates.length}`;const p=candidates[i];try{const d=await api(`/api/prospects/${p.id}/web-research`,{method:"POST",body:{}});p.sales15_profile=d.profile||p.sales15_profile;ok++}catch(e){fail++;console.warn("sales114_research_failed",p.business_name,e)}}renderSales16();toast(`自動確認完了：成功${ok}件${fail?`／確認不可${fail}件`:""}`)}finally{btn.disabled=false;btn.textContent="未調査・旧調査10件を精密確認";setLoading(false)}
     }
     async function sales27Copy(){const text=sales27ExportText();try{await navigator.clipboard.writeText(text);toast("営業調査台帳をコピーしました")}catch{openModal(`<div class="modal-head"><h3>営業調査台帳</h3><button class="close-btn" data-close-modal>×</button></div><div class="modal-body"><textarea rows="18" style="width:100%">${esc(text)}</textarea></div>`)}}
     function sales21Pct(n,d){return d?Math.round((n/d)*100):0}
