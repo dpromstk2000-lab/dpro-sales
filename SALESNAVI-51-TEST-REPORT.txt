@@ -1,0 +1,30 @@
+DPRO SALESNAVI-51 CENTRAL MATERIAL SYNC
+DATE: 2026-08-14
+
+PACKAGE FILES:
+- config.js
+- config.txt
+- sales-proposal-link.js
+- sales-proposal-link.txt
+
+DESIGN:
+- Existing owner.html / owner-ipad.html / staff.html / index.html / system-check.html are NOT replaced.
+- config.js keeps current production API/config and green S favicon.
+- sales-proposal-link.js becomes the central material integration layer.
+- Product site systems-data.js is loaded read-only.
+- Existing SalesNavi API mutations/business logic are not modified.
+
+ADDED:
+- 50-system sales material library
+- product-code/name matching
+- proposal LP / A4 HTML / A4 PDF / LIVE DEMO / PRODUCT direct access
+- recommended material per sales context
+- queue-card quick material buttons
+- sales channel candidate quick LP/material buttons
+- central-material status on sales material rows
+- product material link in desktop navigation / mobile top action / index
+- system-check central master counters
+- green S favicon remains enabled
+
+UPLOAD TARGET:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
