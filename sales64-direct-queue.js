@@ -1,6 +1,6 @@
 /**
  * DPRO SALESNAVI V64
- * Version: SALESNAVI-64-DIRECT-QUEUE-RATELIMIT-20260814
+ * Version: SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814
  *
  * GitHub-side fixes:
  * 1) Registered prospect detail -> "今日の営業へ追加" direct button.
@@ -14,7 +14,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "SALESNAVI-64-DIRECT-QUEUE-RATELIMIT-20260814";
+  const VERSION = "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814";
   const ACTIVE = new Set(["queued", "planned", "in_progress"]);
   const METHODS = Object.freeze({
     visit: "訪問",
@@ -29,6 +29,7 @@
   let queueLoadedAt = 0;
   let queueLoadPromise = null;
   let queueRefreshTimer = null;
+  let applyingQueueMethods = false;
 
   function cfg() {
     return window.DPRO_CONFIG || {};
@@ -153,23 +154,36 @@
       const span = block.querySelector("span");
       const b = block.querySelector("b");
       if (span?.textContent?.trim() === "営業手段" && b) {
-        b.textContent = label;
-        b.dataset.sales64Method = "1";
+        // V64-R1: only mutate the DOM when the visible value actually changes.
+        // The queue MutationObserver watches childList changes, so writing the
+        // same text repeatedly can retrigger the observer forever and leave
+        // the native loading overlay spinning.
+        if (b.textContent?.trim() !== label) {
+          b.textContent = label;
+        }
+        if (b.dataset.sales64Method !== "1") {
+          b.dataset.sales64Method = "1";
+        }
       }
     });
   }
 
   function applyQueueMethodsFromCache() {
-    if (!queueCache.length) return;
-    queueCache.forEach(q => {
-      const method = readMethod(q.notes);
-      if (!method) return;
-      const label = methodLabel(method);
-      document.querySelectorAll(`[data-queue-id="${q.id}"]`).forEach(el => {
-        const container = el.closest(".sales1110-next, .queue-card");
-        setMethodInContainer(container, label);
+    if (!queueCache.length || applyingQueueMethods) return;
+    applyingQueueMethods = true;
+    try {
+      queueCache.forEach(q => {
+        const method = readMethod(q.notes);
+        if (!method) return;
+        const label = methodLabel(method);
+        document.querySelectorAll(`[data-queue-id="${q.id}"]`).forEach(el => {
+          const container = el.closest(".sales1110-next, .queue-card");
+          setMethodInContainer(container, label);
+        });
       });
-    });
+    } finally {
+      applyingQueueMethods = false;
+    }
   }
 
   function queueViewVisible() {

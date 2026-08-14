@@ -1,0 +1,19 @@
+DPRO SALESNAVI V64-R1 TEST REPORT
+==================================
+Version: SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814
+
+Fix:
+- Same-value textContent writes blocked.
+- applyQueueMethodsFromCache re-entry guard added.
+- Cache buster changed to 20260814-64r1.
+
+Preserved:
+- V61 central material integration
+- V63 activity method handoff
+- V64 direct queue addition
+- V64 explicit method selection
+- V64 import completion banner
+- green S favicon
+- V64 Worker rate limit separation
+- V62 60-minute session
+- no Supabase SQL change
