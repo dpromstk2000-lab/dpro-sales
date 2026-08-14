@@ -1,0 +1,37 @@
+DPRO SALESNAVI V64 GitHub 反映手順
+================================
+
+対象リポジトリ:
+dpromstk2000-lab/dpro-sales
+
+アップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+【反映するファイル】
+1. config.js
+2. config.txt
+3. sales64-direct-queue.js
+4. sales64-direct-queue.txt
+5. SALESNAVI-64-TEST-REPORT.txt
+6. V64_GITHUB_DEPLOY_GUIDE.txt
+
+【操作】
+1. DPRO_SALESNAVI_64_DIRECT_QUEUE_GITHUB.zip を解凍
+2. 中の6ファイルをすべて選択
+3. 上記GitHubアップロード先を開く
+4. 6ファイルをリポジトリ直下へドラッグ＆ドロップ
+5. Commit changes を押す
+6. GitHub Pagesの営業ナビを開く
+7. Ctrl + Shift + R で強制再読込
+
+【V64確認】
+営業パイプライン
+→ Ali’i Mili を開く
+→ 店舗営業詳細の上部に「今日の営業へ追加」が表示
+→ 押す
+→ 営業手段「LINE」を選択
+→ 今日の営業へ追加
+→ 営業キューを開く
+→ Ali’i Mili の営業手段が「LINE」になっていることを確認
+
+V61営業素材連携、V63活動方法引継ぎ、緑Sファビコンは維持しています。

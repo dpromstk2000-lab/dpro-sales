@@ -1,0 +1,47 @@
+DPRO SALESNAVI V64 TEST REPORT
+VERSION: SALESNAVI-64-DIRECT-QUEUE-RATELIMIT-20260814
+DATE: 2026-08-14
+
+【本番テストで確認した課題】
+1. Google Placesから営業先登録は成功しているが、登録後の完了表示が分かりにくい。
+2. 営業パイプラインの登録済み店舗から、今日の営業キューへ直接追加する導線が不足。
+3. 営業手段を「訪問 / 電話 / LINE / メール」から明示選択してキューへ保存できない。
+4. V63は結果記録へ営業手段を引き継げるが、その元となるキューの営業手段が自動推定のみだった。
+
+【V64 GitHub修正】
+- 店舗営業詳細ドロワー上部へ「今日の営業へ追加」を追加。
+- 営業手段を必須選択:
+  訪問 / 電話 / LINE / メール
+- 既存 sales_queue_items.notes を利用して営業手段を永続化。
+  DBスキーマ変更なし。
+- 保存形式:
+  [DPRO-SALES-METHOD:line]
+  営業手段: LINE
+- 営業キュー再読込後もnotesから営業手段を復元し表示。
+- V63はその表示をそのまま結果記録の「活動方法」へ引き継ぐ。
+- Google Placesの登録成功toastを検知し、画面内に緑の完了バナーを残す。
+- V61 / V63 / favicon を維持。
+
+【Ali’i Mili の期待動作】
+営業パイプライン
+→ Ali’i Mili
+→ 今日の営業へ追加
+→ 営業手段 LINE
+→ 保存
+→ 営業キュー
+→ 営業手段 LINE
+→ 結果を記録
+→ 活動方法 LINE
+
+【変更しないもの】
+- owner.html本体
+- Supabase DB / SQL
+- 商品マスター
+- V61営業素材
+- V63活動方法引継ぎ
+- V62 60分セッション
+
+【STATIC CHECK】
+sales64-direct-queue.js syntax: PASS
+config.js syntax: PASS
+No Supabase SQL change required.
