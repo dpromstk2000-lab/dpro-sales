@@ -18,6 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
+  usabilityVersion: "SALESNAVI-65-QUICK-SALES-20260814",
   timezone: "Asia/Tokyo"
 });
 
@@ -45,7 +46,7 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V64: registered prospect -> today's queue + explicit sales method */
+/* V64-R1: registered prospect -> today's queue + explicit sales method */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -57,6 +58,21 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales64-direct-queue.js?v=20260814-64r1";
   s.async = false;
   s.dataset.sales64DirectQueue = "1";
+  document.head.appendChild(s);
+})();
+
+/* V65: production sales quick flow */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales65-quick-sales]')) return;
+
+  var s = document.createElement("script");
+  s.src = "./sales65-quick-sales.js?v=20260814-65";
+  s.async = false;
+  s.dataset.sales65QuickSales = "1";
   document.head.appendChild(s);
 })();
 

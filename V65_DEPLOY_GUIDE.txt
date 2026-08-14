@@ -1,0 +1,75 @@
+DPRO SALESNAVI V65 GitHub反映手順
+=================================
+
+V65テーマ:
+「本番営業を1画面で終わらせる」
+
+対象:
+https://github.com/dpromstk2000-lab/dpro-sales
+
+アップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+【ZIP内の6ファイル】
+1. config.js
+2. config.txt
+3. sales65-quick-sales.js
+4. sales65-quick-sales.txt
+5. V65_DEPLOY_GUIDE.txt
+6. SALESNAVI-65-TEST-REPORT.txt
+
+【反映方法】
+1. DPRO_SALESNAVI_65_QUICK_SALES_GITHUB.zip を解凍
+2. 中の6ファイルをすべて選択
+3. 上記GitHubアップロード先を開く
+4. 6ファイルをリポジトリ直下へドラッグ＆ドロップ
+5. Commit changes
+6. GitHub Pagesの営業ナビを開く
+7. Ctrl + Shift + R で強制再読込
+
+【Cloudflare / Supabase】
+変更なし。
+V64 Workerをそのまま使います。
+SQL実行不要です。
+
+【V65確認】
+営業パイプライン
+→ 任意の店舗の詳細を開く
+→ 店舗名のすぐ下に「本番営業クイック操作」が出る
+
+クイック操作:
+・提案LPを開く
+・電話する
+・今日の営業へ追加
+・結果を記録
+・LINEでLP送付済み
+・フォローアップを確認
+
+【LINEでLP送付済み】
+実際にLINEでLPを送った後だけ押してください。
+
+押すと:
+・活動方法 LINE
+・結果 outreach_line_sent
+・履歴「LINEで提案LPを送付」
+・3日後「LINE送付LPの反応・返信確認」
+・今日の営業キューに入っていれば、その営業を完了
+を1回で保存します。
+
+同じ日にもう一度押した場合:
+本日の送付済み履歴を確認して重複登録しません。
+
+【Google Places登録後】
+営業先登録成功後に
+「今登録した店舗を開く」
+を表示します。
+押すと営業パイプラインを店舗名で絞り込み、
+該当店舗を自動で開くようにします。
+
+【維持する既存機能】
+V61 正式営業素材
+V63 営業手段→活動方法引継ぎ
+V64-R1 今日の営業へ追加 / LINE等の営業手段保存
+V64 Worker アクセス制限分離
+60分セッション
+緑Sファビコン

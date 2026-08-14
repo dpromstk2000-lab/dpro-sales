@@ -1,0 +1,57 @@
+DPRO SALESNAVI V65 TEST REPORT
+================================
+Version: SALESNAVI-65-QUICK-SALES-20260814
+Date: 2026-08-14
+
+GOAL:
+Ali’i Mili 本番テストで確認した画面移動の多さを減らす。
+
+V65:
+PASS - Store detail quick command panel injection
+PASS - Sales LP shortcut uses currently rendered official material link
+PASS - Phone shortcut uses existing tel link only
+PASS - "今日の営業へ追加" delegates to V64-R1 method picker
+PASS - "結果を記録" delegates to native activity form
+PASS - "LINEでLP送付済み" uses existing record-activity endpoint
+PASS - resultCode outreach_line_sent matches existing V1.1-9 sales116 flow
+PASS - activityType line matches existing sales116ActivityType
+PASS - 3-day reply_check next action
+PASS - queueItemId included when an active today queue exists
+PASS - completeQueue true for one-click finished sales action
+PASS - duplicate same-day outreach_line_sent guard
+PASS - Google Places import selection captured before native import
+PASS - import success shortcut to pipeline/store detail
+PASS - V61 retained
+PASS - V63 retained
+PASS - V64-R1 retained
+PASS - no Worker change
+PASS - no Supabase SQL change
+
+EXPECTED REAL FLOW:
+Google Places
+→ 営業先登録
+→ 今登録した店舗を開く
+→ 本番営業クイック操作
+→ 提案LPを開く
+→ LINE送信
+→ LINEでLP送付済み
+→ 3日後フォロー自動登録
+
+This replaces the long multi-screen flow with a short production flow.
+
+STATIC CHECK:
+v61_loader: PASS
+v63_loader: PASS
+v64r1_loader: PASS
+v65_loader: PASS
+one_click_line: PASS
+complete_queue: PASS
+reply_check: PASS
+follow_3_days: PASS
+duplicate_guard: PASS
+import_shortcut: PASS
+quick_panel: PASS
+no_sql: PASS
+no_worker: PASS
+config.js syntax: PASS
+sales65-quick-sales.js syntax: PASS
