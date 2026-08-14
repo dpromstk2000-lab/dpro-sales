@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-57 — PRODUCT CODE PRIORITY / 2026-08-14
+/* DPRO SALESNAVI-58 — OFFICIAL PRODUCT DIRECT / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-57-PRODUCT-CODE-PRIORITY-20260814";
+  const VERSION = "SALESNAVI-58-OFFICIAL-PRODUCT-DIRECT-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -129,6 +129,8 @@
       .dpro57-code-inline{display:inline-flex;align-items:center;gap:5px}
       .dpro57-code-inline .dpro57-product-code{padding:3px 6px;font-size:8px}
       .dpro57-mismatch{display:inline-flex;align-items:center;border:1px solid #efcf89;background:#fff6e4;color:#865600;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:850}
+      .dpro58-official-product{display:inline-flex;align-items:center;border:1px solid #9fd9c4;background:#f1fbf7;color:#087553;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900}
+      .dpro58-official-product:before{content:"正式商品";font-size:8px;opacity:.7;margin-right:4px}
       @media(max-width:900px){
         .sales23-top>.sales23-scorebox{grid-column:1;grid-row:auto}
         .sales23-top>.dpro55-panel-note{grid-column:1;grid-row:auto;margin:0}
@@ -287,6 +289,13 @@
 
   function matchSystem(root){
     if(!root||!DATA)return null;
+
+    // V58: for SalesNavi candidate rows, the OFFICIAL assigned product badge
+    // is the only source of truth. Store/business name is never used.
+    if(root.classList?.contains("sales16-candidate")){
+      const assigned=dpro57AssignedProduct(root);
+      return assigned?.system||null;
+    }
 
     // V57 rule:
     // assigned product code/name > structured product metadata > no match.
@@ -473,6 +482,16 @@
       const system = matchSystem(card);
       if (!actions || !system) return;
       const r = resourceSet(system);
+      if (!actions.querySelector("[data-dpro58-official-product]")) {
+        const assigned = dpro57AssignedProduct(card);
+        if (assigned?.label) {
+          const official = document.createElement("span");
+          official.className = "dpro58-official-product";
+          official.setAttribute("data-dpro58-official-product","1");
+          official.textContent = assigned.label;
+          actions.appendChild(official);
+        }
+      }
       if (!actions.querySelector("[data-dpro57-product-code]")) {
         const code = document.createElement("span");
         code.className = "dpro57-product-code";
@@ -1005,16 +1024,55 @@
     return [r.lp?.url,r.flyer?.url,r.demo?.url].filter(Boolean).length
   }
 
-  function dpro57AssignedProduct(card){
-    const badges=[...(card?.querySelectorAll?.(".sales16-tags .badge")||[])].map(x=>String(x.textContent||"").trim());
-    const candidates=badges.filter(x=>x&&!/^(A|B|C)$/.test(x)&&!/今日優先|おすすめ|営業利用|素材|HP|LINE公式|Instagram|問い合わせ|電話|未確認|準備済|未登録/.test(x));
-    for(const label of candidates){
-      const system=dpro57SystemFromLabel(label);
-      if(system)return {label,system};
+  function dpro58OfficialProductLabel(card){
+    const tags=card?.querySelector?.(".sales16-tags");
+    if(!tags)return "";
+
+    // owner.html renderSales16() renders:
+    // grade -> 今日優先 score -> OFFICIAL product_name -> channel/risk/etc.
+    // Therefore the badge immediately after "今日優先" is the SalesNavi
+    // assigned product. We read that exact DOM position instead of guessing.
+    const badges=[...tags.querySelectorAll(":scope > .badge")];
+    const scoreIndex=badges.findIndex(el=>/今日優先/.test(String(el.textContent||"")));
+    if(scoreIndex>=0 && badges[scoreIndex+1]){
+      return String(badges[scoreIndex+1].textContent||"").trim();
     }
-    const system=matchSystem(card);
-    return system?{label:system.name,system}:null;
+
+    // Structural fallback for older owner render where grade is still a badge.
+    if(badges[2])return String(badges[2].textContent||"").trim();
+    return "";
   }
+
+  function dpro58SystemFromOfficialProduct(label){
+    const raw=String(label||"").trim();
+    if(!raw||!DATA)return null;
+
+    // First use the strict V57 product-label resolver.
+    const hit=dpro57SystemFromLabel(raw);
+    if(hit)return hit;
+
+    // Conservative exact normalization fallback.
+    const key=norm(raw);
+    if(!key)return null;
+    const exact=(DATA.systems||[]).find(system=>{
+      const values=[
+        system.code,
+        system.assetSlug,
+        system.name,
+        ...(system.targets||[])
+      ].filter(Boolean).map(norm);
+      return values.includes(key);
+    });
+    return exact||null;
+  }
+
+  function dpro57AssignedProduct(card){
+    const label=dpro58OfficialProductLabel(card);
+    if(!label)return null;
+    const system=dpro58SystemFromOfficialProduct(label);
+    return system?{label,system}:null;
+  }
+
 
   function dpro55CandidateInfo(card,index=0){
     if(!card)return null;
@@ -1070,7 +1128,7 @@
       <div class="dpro55-top5-rank">${rank}</div>
       <div class="dpro55-top5-main">
         <h4>${esc(info.name)}</h4>
-        <p>${esc(info.product)}${info.address?` ／ ${esc(info.address)}`:""}</p>
+        <p><span class="dpro58-official-product">${esc(info.product)}</span> <span class="dpro57-product-code">${esc(info.system?.code||"")}</span>${info.address?` ／ ${esc(info.address)}`:""}</p>
         <div class="dpro55-top5-tags">${tags}<span class="dpro55-top5-source">商品サイト素材連携</span></div>
       </div>
       <div class="dpro55-top5-actions">
@@ -1108,7 +1166,7 @@
       list.before(note);
     }
     const sourceCount=ranked.length;
-    note.innerHTML=`<b>V55中央連携：</b>営業入口が確認でき、DPRO商品サイト素材を使える候補 ${sourceCount}件から上位${top.length}件を表示しています。`;
+    note.innerHTML=`<b>V55中央連携：</b>SalesNavi本体の正式割当商品を直接読み取り、商品サイト素材へ接続できる候補 ${sourceCount}件から上位${top.length}件を表示しています。`;
 
     const sig=top.map(x=>`${x.id}:${x.score}:${dpro55State.queueIds.has(x.id)?1:0}`).join("|");
     if(list.dataset.dpro55Signature!==sig){
@@ -1345,6 +1403,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-57 product-code priority unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-58 official-product direct unavailable:", centralError);
   });
 })();

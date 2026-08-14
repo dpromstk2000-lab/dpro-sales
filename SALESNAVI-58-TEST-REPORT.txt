@@ -1,0 +1,38 @@
+DPRO SALESNAVI-58 OFFICIAL PRODUCT DIRECT
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+V57 RESULT:
+- Store-name false match was prevented.
+- But TOP5 became 0 because product extraction was still too generic/strict.
+
+OWNER.HTML SOURCE CONFIRMED:
+renderSales16() renders candidate tags in this exact order:
+1. priority grade
+2. 今日優先 score
+3. prod.product_name  <-- SalesNavi official assigned product
+4. channel / risk / website / LINE / material / proposal badges
+
+V58 FIX:
+1. Candidate material resolution reads ONLY the official product badge
+   immediately after "今日優先".
+2. It does not scan the store/business name.
+3. It does not select a product from unrelated badges.
+4. Official product name is normalized and matched to the central
+   50-system catalog.
+5. The resolved central code is displayed beside the official product.
+6. Example intended result:
+   DPRO ペットサロン LINE -> PETSALON -> flyer-pet-salon.html
+7. TOP5 ranking is restored using this official product source.
+8. V55 ranking logic, V56 layout, queue safety, central material library,
+   and green S favicon remain.
+
+FAIL-SAFE:
+If the official assigned product cannot be mapped to the central catalog,
+V58 does not guess from the business name.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.
