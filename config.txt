@@ -16,6 +16,7 @@ window.DPRO_CONFIG = Object.freeze({
   systemCheckVersion: "SALES-49-SYSTEM-CHECK-20260811",
   proposalHubUrl: "https://dpromstk2000-lab.github.io/dpro-line-systems-site/proposal.html",
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
+  activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   timezone: "Asia/Tokyo"
 });
 
@@ -25,6 +26,21 @@ window.DPRO_CONFIG = Object.freeze({
   var s = document.createElement("script");
   s.src = "./sales-proposal-link.js?v=20260814-61";
   s.async = true;
+  document.head.appendChild(s);
+})();
+
+/* V63: queue sales method -> activity result method handoff */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales63-activity-method]')) return;
+
+  var s = document.createElement("script");
+  s.src = "./sales63-activity-method-handoff.js?v=20260814-63";
+  s.async = false;
+  s.dataset.sales63ActivityMethod = "1";
   document.head.appendChild(s);
 })();
 

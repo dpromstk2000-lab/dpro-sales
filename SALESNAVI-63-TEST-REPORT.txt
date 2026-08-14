@@ -1,0 +1,44 @@
+DPRO SALESNAVI-63 ACTIVITY METHOD HANDOFF
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales / owner.html
+
+REAL-SCREEN ISSUE CONFIRMED:
+- Today's sales queue showed Dog Salon Liebe sales method = 電話.
+- Native result modal opened with activity method = 訪問.
+- Saving in that state could create an activity record with the wrong method.
+
+ROOT CAUSE:
+owner.html native openRecordActivity() always renders the activity select
+with 訪問 as the first option and does not select the queue's sales method.
+
+V63:
+1. Leaves current owner.html untouched.
+2. Adds a small GitHub-side compatibility addon loaded only on owner.html.
+3. On "結果を記録" click, reads the visible queue "営業手段" before
+   the native click handler opens the modal.
+4. After the modal opens, selects the matching native activity type:
+   訪問 -> visit
+   電話 -> phone
+   LINE -> line
+   メール -> email
+   資料 -> material
+   デモ -> demo
+   見積 -> quote
+   unsupported channels -> other
+5. Adds a small confirmation hint below the select:
+   "営業キューの営業手段 ○○ を活動方法へ引き継ぎました。"
+6. Does not auto-save or alter the selected sales result.
+7. V61 proposal/material addon remains unchanged.
+8. V62 Worker 60-minute session remains unchanged.
+9. No Cloudflare Worker / Supabase changes.
+
+EXPECTED DOG SALON LIEBE:
+営業キュー: 電話
+-> 結果を記録
+-> 活動方法: 電話
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> drag all 5 files into repository root -> Commit changes.
