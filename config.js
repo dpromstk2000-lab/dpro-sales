@@ -27,3 +27,33 @@ window.DPRO_CONFIG = Object.freeze({
   s.async = true;
   document.head.appendChild(s);
 })();
+
+/* DPRO SALES NAVI favicon: green S */
+(function(){
+  "use strict";
+  if (typeof document === "undefined" || !document.head) return;
+
+  var svg =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
+      '<defs>' +
+        '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+          '<stop offset="0%" stop-color="#33c69a"/>' +
+          '<stop offset="100%" stop-color="#0b8060"/>' +
+        '</linearGradient>' +
+      '</defs>' +
+      '<rect width="64" height="64" rx="16" fill="url(#g)"/>' +
+      '<text x="32" y="33" text-anchor="middle" dominant-baseline="middle" ' +
+        'font-family="Arial,Helvetica,sans-serif" font-size="40" font-weight="700" fill="#ffffff">S</text>' +
+    '</svg>';
+
+  document.querySelectorAll('link[rel~="icon"]').forEach(function(el){
+    el.remove();
+  });
+
+  var icon = document.createElement("link");
+  icon.rel = "icon";
+  icon.type = "image/svg+xml";
+  icon.href = "data:image/svg+xml," + encodeURIComponent(svg);
+  icon.setAttribute("data-dpro-sales-favicon", "green-s");
+  document.head.appendChild(icon);
+})();
