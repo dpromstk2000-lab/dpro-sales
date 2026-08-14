@@ -1,0 +1,29 @@
+DPRO SALESNAVI-53 ACTION FLOW
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+PURPOSE:
+23 active prospects -> choose today's prospects -> show next material -> execute sales -> record result.
+
+V53 CHANGES:
+1. Keeps only ONE common "営業素材" button in the top bar.
+2. "営業中の候補" metric is clickable and opens the full prospect list.
+3. Every Sales Channel candidate card gets "今日の営業へ追加".
+   - This DOES NOT introduce a new API implementation.
+   - It uses the existing native data-sales119-queue handler in owner.html.
+   - Existing duplicate / follow-up / assignment safety checks remain in force.
+4. Candidate cards show "次に見せる：提案LP" plus central material access.
+5. Queue cards keep the "次に見せる" material shortcut.
+6. Prospect detail "③ 営業素材" gets:
+   - "次に見せる資料"
+   - "営業素材を全部見る"
+7. Existing 50-system central library remains:
+   proposal hub / LP / A4 HTML / A4 PDF / LIVE DEMO / PRODUCT.
+8. Green S favicon remains.
+9. Existing owner.html / staff.html / owner-ipad.html business logic is not replaced.
+
+UPLOAD TARGET:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all files -> drag into repository root -> Commit changes.

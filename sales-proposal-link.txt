@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-52 — QUICK MATERIAL ACCESS / 2026-08-14
+/* DPRO SALESNAVI-53 — ACTION FLOW / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-52-QUICK-MATERIAL-ACCESS-20260814";
+  const VERSION = "SALESNAVI-53-ACTION-FLOW-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -65,6 +65,15 @@
       .dpro51-sync{background:#fff;border:1px solid #dce5ed;border-radius:17px;padding:15px;margin:0 0 18px}.dpro51-sync h2{font-size:15px;margin:0 0 10px}.dpro51-sync-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.dpro51-sync-box{background:#f4f8fa;border-radius:11px;padding:10px}.dpro51-sync-box span{display:block;font-size:9px;color:#718195}.dpro51-sync-box b{display:block;font-size:17px;margin-top:4px;color:#087553}.dpro51-sync-note{font-size:10px;color:#718195;line-height:1.6;margin-top:9px}
       .dpro52-top-material{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important;font-weight:850!important}
       .dpro52-dashboard-material{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
+      .dpro53-metric-link{cursor:pointer!important;outline:none!important;transition:.16s}
+      .dpro53-metric-link:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(16,44,73,.10)}
+      .dpro53-metric-link:focus-visible{box-shadow:0 0 0 3px rgba(14,141,103,.22),0 12px 28px rgba(16,44,73,.10)}
+      .dpro53-queue-add{background:#0e8d67!important;border-color:#0e8d67!important;color:#fff!important}
+      .dpro53-queue-add[disabled]{opacity:.58!important;cursor:default!important}
+      .dpro53-next-material{border-color:#efca79!important;background:#fff8e8!important;color:#845604!important;font-weight:850!important}
+      .dpro53-flow-strip{margin-top:10px;padding:10px;border:1px solid #cde7dc;border-radius:12px;background:#f4fbf8;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+      .dpro53-flow-strip strong{color:#087553;font-size:11px;margin-right:auto}
+      .dpro53-candidate-help{margin:0 0 12px;padding:10px 12px;border:1px solid #cfe7dc;background:#f5fcf9;border-radius:12px;color:#46675d;font-size:11px;line-height:1.65}
       @media(max-width:760px){#dpro51Overlay{padding:0;align-items:flex-end}#dpro51Panel{width:100%;max-height:92dvh;border-radius:22px 22px 0 0}.dpro51-resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dpro51-list{grid-template-columns:1fr}.dpro51-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
@@ -299,7 +308,7 @@
     a.href = best.url; a.target = "_blank"; a.rel = "noopener";
     a.className = "btn btn-outline btn-sm dpro51-recommend";
     if (document.body.classList.contains("mobile") || document.querySelector(".bottom-nav")) a.className = "btn btn-outline btn-small dpro51-recommend";
-    a.textContent = `おすすめ：${best.label}`;
+    a.textContent = `次に見せる：${best.label}`;
     a.title = best.why;
     return a;
   }
@@ -329,7 +338,7 @@
       if (r.lp.url) {
         const a = document.createElement("a");
         a.className = "btn btn-outline btn-sm dpro51-recommend";
-        a.href = r.lp.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "提案LP";
+        a.href = r.lp.url; a.target = "_blank"; a.rel = "noopener"; a.textContent = "LP";
         actions.appendChild(a);
       }
       actions.appendChild(makeOpenButton(system, "btn btn-outline btn-sm dpro51-quick"));
@@ -414,6 +423,141 @@
     actions.insertBefore(b, actions.firstChild);
   }
 
+
+  function openCandidateList(){
+    const nav = document.querySelector('.nav-btn[data-view="lineoutreach"]');
+    if (!nav) return;
+    nav.click();
+    window.setTimeout(() => {
+      const scope = document.querySelector("#sales16Scope");
+      if (scope) {
+        scope.value = "all";
+        scope.dispatchEvent(new Event("change",{bubbles:true}));
+      }
+      document.querySelector("#sales16CandidateList")?.scrollIntoView({behavior:"smooth",block:"start"});
+    }, 120);
+  }
+
+  function makeActiveMetricClickable(){
+    const metric = document.querySelector("#metricActive")?.closest(".metric");
+    if (!metric || metric.dataset.dpro53Metric === "1") return;
+    metric.dataset.dpro53Metric = "1";
+    metric.classList.add("dpro53-metric-link");
+    metric.setAttribute("role","button");
+    metric.setAttribute("tabindex","0");
+    metric.setAttribute("aria-label","営業中の候補一覧を開く");
+    metric.title = "営業中の候補一覧を開く";
+    const sub = metric.querySelector(".sub");
+    if (sub) sub.textContent = "クリックして候補一覧へ";
+    metric.addEventListener("click", openCandidateList);
+    metric.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openCandidateList();
+      }
+    });
+  }
+
+  function prospectIdFromCandidate(card){
+    return card.querySelector("[data-prospect]")?.getAttribute("data-prospect")
+      || (() => {
+        const href = card.querySelector('a[href*="staff.html?prospect="]')?.getAttribute("href") || "";
+        try { return new URL(href, location.href).searchParams.get("prospect") || ""; } catch (_) { return ""; }
+      })();
+  }
+
+  function nativeQueueState(id){
+    if (!id) return null;
+    const native = document.querySelector(`#sales23PriorityList [data-sales119-queue="${CSS.escape(id)}"]`);
+    if (!native) return null;
+    return {disabled:Boolean(native.disabled), label:String(native.textContent || "").trim()};
+  }
+
+  function updateCandidateQueueButton(card, btn, id){
+    const state = nativeQueueState(id);
+    if (!state) return;
+    btn.disabled = state.disabled;
+    btn.textContent = state.disabled ? "追加済み" : "今日の営業へ追加";
+  }
+
+  function enhanceCandidateActions(){
+    const listRoot = document.querySelector("#sales16CandidateList");
+    if (listRoot && !listRoot.querySelector("[data-dpro53-candidate-help]") && listRoot.children.length) {
+      const help = document.createElement("div");
+      help.className = "dpro53-candidate-help";
+      help.setAttribute("data-dpro53-candidate-help","1");
+      help.innerHTML = "<b>V53：</b>候補からそのまま「今日の営業へ追加」→「次に見せる資料」→営業実行へ進めます。";
+      listRoot.prepend(help);
+    }
+
+    document.querySelectorAll(".sales16-candidate").forEach(card => {
+      const actions = card.querySelector(".sales16-actions");
+      if (!actions) return;
+      const id = prospectIdFromCandidate(card);
+      const system = matchSystem(card);
+      if (!id) return;
+
+      let queueBtn = actions.querySelector("[data-dpro53-queue-add]");
+      if (!queueBtn) {
+        queueBtn = document.createElement("button");
+        queueBtn.type = "button";
+        queueBtn.className = "btn btn-primary btn-sm dpro53-queue-add";
+        queueBtn.setAttribute("data-dpro53-queue-add","1");
+        queueBtn.setAttribute("data-sales119-queue",id);
+        queueBtn.textContent = "今日の営業へ追加";
+        actions.insertBefore(queueBtn, actions.firstChild);
+      }
+      updateCandidateQueueButton(card, queueBtn, id);
+
+      if (system && !actions.querySelector("[data-dpro53-next-material]")) {
+        const best = recommend(system, "LINE営業 " + (card.textContent || ""));
+        if (best?.url) {
+          const a = document.createElement("a");
+          a.href = best.url;
+          a.target = "_blank";
+          a.rel = "noopener";
+          a.className = "btn btn-outline btn-sm dpro53-next-material";
+          a.setAttribute("data-dpro53-next-material","1");
+          a.textContent = `次に見せる：${best.label}`;
+          a.title = best.why || "";
+          actions.insertBefore(a, queueBtn.nextSibling);
+        }
+      }
+    });
+  }
+
+  function enhanceDetailFlow(){
+    const drawer = document.querySelector("#drawerBody");
+    if (!drawer || drawer.dataset.dpro53Flow === "1") return;
+    const system = matchSystem(drawer);
+    if (!system) return;
+
+    const boxes = [...drawer.querySelectorAll(".detail-box")];
+    const materialBox = boxes.find(box => /③\s*営業素材/.test(box.textContent || ""));
+    if (!materialBox) return;
+
+    const best = recommend(system, drawer.textContent || "");
+    const strip = document.createElement("div");
+    strip.className = "dpro53-flow-strip";
+    strip.innerHTML = `<strong>V53 次に見せる資料</strong>`;
+    if (best?.url) {
+      const a = document.createElement("a");
+      a.className = "btn btn-outline btn-sm dpro53-next-material";
+      a.href = best.url;
+      a.target = "_blank";
+      a.rel = "noopener";
+      a.textContent = best.label;
+      strip.appendChild(a);
+    }
+    strip.appendChild(makeOpenButton(system, "btn btn-outline btn-sm dpro51-quick", "営業素材を全部見る"));
+    materialBox.appendChild(strip);
+    drawer.dataset.dpro53Flow = "1";
+  }
+
+  function cleanDuplicateDashboardMaterial(){
+    document.querySelectorAll("[data-dpro52-dashboard-material]").forEach(el => el.remove());
+  }
+
   function addIndexCard(){
     const grid = document.querySelector("body .grid");
     if (!grid || grid.querySelector(`[${LIB_MARK}]`)) return;
@@ -461,12 +605,15 @@
   function run(){
     scheduled = false;
     if (!DATA) return;
+    cleanDuplicateDashboardMaterial();
+    makeActiveMetricClickable();
     enhanceQueueCards();
     enhanceSalesCandidates();
+    enhanceCandidateActions();
+    enhanceDetailFlow();
     enhanceMaterialRows();
     addDesktopNav();
     addTopShortcut();
-    addDashboardShortcut();
     addIndexCard();
     addSystemCheck();
     replaceOldLabels();
@@ -492,6 +639,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-51 central material sync unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-53 action flow unavailable:", centralError);
   });
 })();
