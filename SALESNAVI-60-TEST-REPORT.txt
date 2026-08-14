@@ -1,0 +1,33 @@
+DPRO SALESNAVI-60 OFFICIAL PRODUCT -> CENTRAL MATERIAL
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+CONFIRMED ON REAL SCREEN:
+Dog Salon Liebe detail shows:
+  提案するDPROシステム
+  DPRO ペットサロン LINE
+The SalesNavi product assignment is correct.
+
+V60:
+- Uses "提案するDPROシステム" as the detail-page source of truth.
+- Maps DPRO ペットサロン LINE -> PETSALON.
+- Replaces old DEMO-only / 営業LP未登録 detail material UI with:
+  提案LP / A4チラシ / PDF / LIVE DEMO / PRODUCT / すべて見る.
+- Central materials remove the need for per-prospect LP registration.
+- Candidate product extraction prefers the DPRO-prefixed assigned-product badge.
+- Business/store name is never used for product selection.
+- Added enhancement API calls do not run before login, reducing login-time
+  request bursts / rate-limit risk.
+- V59 TOP5/material separation, V56 layout, queue safety, material library,
+  and green S favicon remain.
+
+EXPECTED DOG SALON LIEBE:
+Official product: DPRO ペットサロン LINE
+Central code: PETSALON
+A4: flyer-pet-salon.html
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.

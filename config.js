@@ -15,7 +15,7 @@ window.DPRO_CONFIG = Object.freeze({
   channelResearchVersion: "DPRO-SALES-V1.1-5-R3-CHANNEL-RESEARCH-20260811",
   systemCheckVersion: "SALES-49-SYSTEM-CHECK-20260811",
   proposalHubUrl: "https://dpromstk2000-lab.github.io/dpro-line-systems-site/proposal.html",
-  proposalLinkVersion: "SALESNAVI-59-TOP5-MATERIAL-DECOUPLE-20260814",
+  proposalLinkVersion: "SALESNAVI-60-OFFICIAL-PRODUCT-CENTRAL-MATERIAL-20260814",
   timezone: "Asia/Tokyo"
 });
 
@@ -23,7 +23,7 @@ window.DPRO_CONFIG = Object.freeze({
   "use strict";
   if (typeof document === "undefined") return;
   var s = document.createElement("script");
-  s.src = "./sales-proposal-link.js?v=20260814-59";
+  s.src = "./sales-proposal-link.js?v=20260814-60";
   s.async = true;
   document.head.appendChild(s);
 })();

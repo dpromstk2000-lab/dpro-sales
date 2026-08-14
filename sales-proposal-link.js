@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-59 — TOP5 MATERIAL DECOUPLE / 2026-08-14
+/* DPRO SALESNAVI-60 — OFFICIAL PRODUCT CENTRAL MATERIAL / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-59-TOP5-MATERIAL-DECOUPLE-20260814";
+  const VERSION = "SALESNAVI-60-OFFICIAL-PRODUCT-CENTRAL-MATERIAL-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -133,6 +133,16 @@
       .dpro58-official-product:before{content:"正式商品";font-size:8px;opacity:.7;margin-right:4px}
       .dpro59-material-check{display:inline-flex;align-items:center;justify-content:center;border:1px solid #efcf89;background:#fff6e4;color:#865600;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:850;white-space:nowrap}
       .dpro59-rank-source{display:inline-flex;align-items:center;border:1px solid #c7d9e8;background:#f3f7fb;color:#42617d;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:850}
+      .dpro60-material-head{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+      .dpro60-material-head h4{margin:0;font-size:16px}
+      .dpro60-material-note{font-size:11px;line-height:1.65;color:#5f7183;margin:8px 0 0}
+      .dpro60-material-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+      .dpro60-material-actions a,.dpro60-material-actions button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+      .dpro60-material-actions .primary{background:#0e8d67!important;border-color:#0e8d67!important;color:#fff!important}
+      .dpro60-material-actions .flyer{background:#fff8e9!important;border-color:#e8c66e!important;color:#805400!important}
+      .dpro60-material-actions .demo{background:#eef6ff!important;border-color:#bad4ef!important;color:#1e609c!important}
+      .dpro60-official-box{margin-top:8px;padding:8px 10px;border:1px solid #bfe1d3;background:#f1fbf7;border-radius:10px;font-size:11px;color:#315d4e}
+      .dpro60-official-box b{color:#087553}
       @media(max-width:900px){
         .sales23-top>.sales23-scorebox{grid-column:1;grid-row:auto}
         .sales23-top>.dpro55-panel-note{grid-column:1;grid-row:auto;margin:0}
@@ -726,6 +736,106 @@
 
 
 
+
+  function dpro60DetailOfficialProductLabel(drawer){
+    if(!drawer)return "";
+
+    const walker=document.createTreeWalker(drawer,NodeFilter.SHOW_TEXT);
+    let node;
+    while((node=walker.nextNode())){
+      if(!/提案するDPROシステム/.test(String(node.nodeValue||"")))continue;
+      let el=node.parentElement;
+      for(let depth=0;el&&depth<5;depth++,el=el.parentElement){
+        const lines=String(el.innerText||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
+        const idx=lines.findIndex(x=>/提案するDPROシステム/.test(x));
+        if(idx>=0){
+          const next=lines.slice(idx+1).find(x=>/^DPRO/i.test(x));
+          if(next)return next;
+        }
+      }
+    }
+
+    const lines=String(drawer.innerText||"").split(/\n+/).map(x=>x.trim()).filter(Boolean);
+    const idx=lines.findIndex(x=>/提案するDPROシステム/.test(x));
+    if(idx>=0){
+      const next=lines.slice(idx+1,idx+5).find(x=>/^DPRO/i.test(x));
+      if(next)return next;
+    }
+    return "";
+  }
+
+  function dpro60DetailSystem(drawer){
+    const label=dpro60DetailOfficialProductLabel(drawer);
+    if(!label)return {label:"",system:null};
+    return {label,system:dpro58SystemFromOfficialProduct(label)};
+  }
+
+  function dpro60FindMaterialBox(drawer){
+    if(!drawer)return null;
+    const boxes=[...drawer.querySelectorAll(".detail-box")];
+    const exact=boxes.find(box=>/③\s*営業素材/.test(String(box.textContent||"")));
+    if(exact)return exact;
+
+    const all=[...drawer.querySelectorAll("section,article,div")];
+    return all
+      .filter(el=>/③\s*営業素材/.test(String(el.textContent||"")))
+      .sort((a,b)=>String(a.textContent||"").length-String(b.textContent||"").length)[0]||null;
+  }
+
+  function dpro60EnhanceDetailMaterials(){
+    const drawer=document.querySelector("#drawerBody");
+    if(!drawer)return;
+
+    const materialBox=dpro60FindMaterialBox(drawer);
+    if(!materialBox)return;
+
+    const resolved=dpro60DetailSystem(drawer);
+    const label=resolved.label;
+    const system=resolved.system;
+    const signature=`${label}|${system?.code||"NO-MAP"}`;
+
+    if(materialBox.dataset.dpro60Signature===signature)return;
+    materialBox.dataset.dpro60Signature=signature;
+
+    if(!label)return;
+
+    if(!system){
+      materialBox.innerHTML=`
+        <div class="dpro60-material-head">
+          <h4>③ 営業素材</h4>
+          <span class="dpro57-mismatch">中央素材は要確認</span>
+        </div>
+        <div class="dpro60-official-box">正式割当商品：<b>${esc(label)}</b></div>
+        <p class="dpro60-material-note">正式商品は確認できていますが、商品サイト中央マスターへ安全に紐付けできないため、誤った営業素材は表示しません。</p>`;
+      return;
+    }
+
+    const r=resourceSet(system);
+    const links=[
+      r.lp?.url ? `<a class="btn btn-outline btn-sm primary" href="${esc(r.lp.url)}" target="_blank" rel="noopener">提案LP</a>` : "",
+      r.flyer?.url ? `<a class="btn btn-outline btn-sm flyer" href="${esc(r.flyer.url)}" target="_blank" rel="noopener">A4チラシ</a>` : "",
+      r.pdf?.url ? `<a class="btn btn-outline btn-sm" href="${esc(r.pdf.url)}" target="_blank" rel="noopener">PDF</a>` : "",
+      r.demo?.url ? `<a class="btn btn-outline btn-sm demo" href="${esc(r.demo.url)}" target="_blank" rel="noopener">LIVE DEMO</a>` : "",
+      r.product?.url ? `<a class="btn btn-outline btn-sm" href="${esc(r.product.url)}" target="_blank" rel="noopener">PRODUCT</a>` : ""
+    ].filter(Boolean).join("");
+
+    materialBox.innerHTML=`
+      <div class="dpro60-material-head">
+        <h4>③ 営業素材</h4>
+        <span class="dpro57-product-code">${esc(system.code)}</span>
+        <span class="dpro58-official-product">${esc(label)}</span>
+      </div>
+      <div class="dpro60-material-actions">${links}
+        <button type="button" class="btn btn-outline btn-sm" data-dpro60-all-materials="${esc(system.code)}">すべて見る</button>
+      </div>
+      <p class="dpro60-material-note">商品サイト中央マスターの営業素材を使用します。SalesNavi側へ営業LPを個別登録する必要はありません。</p>`;
+
+    materialBox.querySelector("[data-dpro60-all-materials]")?.addEventListener("click",()=>{
+      openSystem(system,drawer.textContent||"");
+    });
+  }
+
+
   function dpro59MarkUnmappedCandidates(){
     document.querySelectorAll(".sales16-candidate").forEach(card=>{
       if(card.querySelector("[data-dpro59-map-status]"))return;
@@ -1001,6 +1111,8 @@
   function dpro55ActiveQueue(q){return !["completed","skipped","cancelled"].includes(String(q?.queue_status||"queued"))}
 
   async function dpro55RefreshContext(force=false){
+    // V60: enhancement APIs never run before login.
+    if(!dpro55Token())return;
     if(dpro55State.contextLoading)return;
     if(!force&&Date.now()-dpro55State.lastContextAt<30000)return;
     dpro55State.contextLoading=true;
@@ -1049,18 +1161,33 @@
     const tags=card?.querySelector?.(".sales16-tags");
     if(!tags)return "";
 
-    // owner.html renderSales16() renders:
-    // grade -> 今日優先 score -> OFFICIAL product_name -> channel/risk/etc.
-    // Therefore the badge immediately after "今日優先" is the SalesNavi
-    // assigned product. We read that exact DOM position instead of guessing.
-    const badges=[...tags.querySelectorAll(":scope > .badge")];
-    const scoreIndex=badges.findIndex(el=>/今日優先/.test(String(el.textContent||"")));
-    if(scoreIndex>=0 && badges[scoreIndex+1]){
-      return String(badges[scoreIndex+1].textContent||"").trim();
+    const badges=[...tags.querySelectorAll(".badge")];
+    const texts=badges.map(el=>String(el.textContent||"").trim()).filter(Boolean);
+
+    // V60 source of truth for candidate cards:
+    // SalesNavi's assigned product badge is DPRO ... LINE.
+    // Never inspect the business/store name.
+    const dproLabel=texts.find(t=>/^DPRO/i.test(t));
+    if(dproLabel && dpro58SystemFromOfficialProduct(dproLabel))return dproLabel;
+
+    // Exact central product code is also safe.
+    for(const t of texts){
+      const hit=systemByCode(String(t).trim().toUpperCase());
+      if(hit)return t;
     }
 
-    // Structural fallback for older owner render where grade is still a badge.
-    if(badges[2])return String(badges[2].textContent||"").trim();
+    // Conservative fallback: exact normalized product-name/target match only.
+    for(const t of texts){
+      const key=norm(t);
+      if(!key)continue;
+      const hit=(DATA?.systems||[]).find(system=>{
+        const vals=[system.code,system.assetSlug,system.name,...(system.targets||[])]
+          .filter(Boolean).map(norm);
+        return vals.includes(key);
+      });
+      if(hit)return t;
+    }
+
     return "";
   }
 
@@ -1275,6 +1402,10 @@
   }
 
   async function dpro55Enqueue(ids,label="候補"){
+    if(!dpro55Token()){
+      showMiniToast("ログイン後に今日の営業へ追加できます");
+      return;
+    }
     let checked;
     try{checked=await dpro55SafeReady(ids)}
     catch(e){showMiniToast(e.message||"営業キューを確認できませんでした");return}
@@ -1402,6 +1533,7 @@
     enhanceSalesCandidates();
     enhanceCandidateActions();
     enhanceDetailFlow();
+    dpro60EnhanceDetailMaterials();
     dpro54EnhanceTop5Panel();
     dpro54OrganizeCandidateList();
     dpro54UpdateCandidatePrimaryActions();
@@ -1435,6 +1567,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-59 TOP5/material decouple unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-60 official-product central-material unavailable:", centralError);
   });
 })();
