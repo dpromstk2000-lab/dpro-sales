@@ -1,0 +1,42 @@
+DPRO SALESNAVI-57 PRODUCT CODE PRIORITY
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+CONFIRMED BUG:
+Dog Salon Liebe was assigned/displayed as a pet-salon prospect, but
+"次に見せる：A4チラシ" opened the generic beauty SALON flyer.
+
+ROOT CAUSE:
+The V51-V56 material resolver could fall back to the full card text.
+Therefore the store name "Dog Salon Liebe" could match the generic
+SALON alias before a reliable assigned-product match was established.
+
+V57 FIX:
+1. Material selection NEVER uses business/store name.
+2. Resolution priority is:
+   - explicit SalesNavi product/system code
+   - assigned product badge/name
+   - structured product metadata in queue/detail rows
+   - otherwise NO automatic material link
+3. Exact product code wins.
+4. Exact normalized product name/target wins next.
+5. Generic English "salon" is excluded from fuzzy fallback.
+6. PETSALON resolves to:
+   - lp-pet-salon.html
+   - flyer-pet-salon.html
+   - flyer-pet-salon.pdf
+   - PETSALON LIVE DEMO
+7. Every recommended-material action visibly shows the resolved code
+   such as PETSALON so the operator can verify it before opening.
+8. V55 ranking, V56 full-width layout, queue safety checks,
+   central material library, and green S favicon remain.
+
+SAFETY:
+If V57 cannot reliably identify the assigned DPRO product, it does not
+guess from the shop name. It withholds the automatic material link.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.

@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-56 — TOP5 LAYOUT FIX / 2026-08-14
+/* DPRO SALESNAVI-57 — PRODUCT CODE PRIORITY / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-56-TOP5-LAYOUT-FIX-20260814";
+  const VERSION = "SALESNAVI-57-PRODUCT-CODE-PRIORITY-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -125,6 +125,10 @@
         #sales23PriorityList .dpro55-top5-item{grid-template-columns:34px minmax(0,1fr)}
         #sales23PriorityList .dpro55-top5-actions{grid-column:2;justify-content:flex-start}
       }
+      .dpro57-product-code{display:inline-flex;align-items:center;justify-content:center;border:1px solid #b8d8cc;background:#edf8f3;color:#087553;border-radius:999px;padding:5px 7px;font-size:9px;font-weight:900;letter-spacing:.04em;white-space:nowrap}
+      .dpro57-code-inline{display:inline-flex;align-items:center;gap:5px}
+      .dpro57-code-inline .dpro57-product-code{padding:3px 6px;font-size:8px}
+      .dpro57-mismatch{display:inline-flex;align-items:center;border:1px solid #efcf89;background:#fff6e4;color:#865600;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:850}
       @media(max-width:900px){
         .sales23-top>.sales23-scorebox{grid-column:1;grid-row:auto}
         .sales23-top>.dpro55-panel-note{grid-column:1;grid-row:auto;margin:0}
@@ -193,28 +197,105 @@
     return DATA.getByCode ? DATA.getByCode(code) : (DATA.systems || []).find(s => s.code === String(code || "").toUpperCase()) || null;
   }
 
-  function matchSystem(root){
-    if (!root || !DATA) return null;
-    const attrs = ["data-product-code","data-code","data-system-code","data-product"];
-    for (const a of attrs) {
-      const code = root.getAttribute?.(a);
-      const hit = systemByCode(code);
-      if (hit) return hit;
-    }
-    const codeNode = root.querySelector?.(".sales17-code,[data-product-code],[data-code]");
-    if (codeNode) {
-      const hit = systemByCode(codeNode.getAttribute("data-product-code") || codeNode.getAttribute("data-code") || codeNode.textContent);
-      if (hit) return hit;
-    }
-    const text = norm(root.textContent || "");
-    if (!text) return null;
+  function dpro57AliasRows(){
+    const rows=[];
+    (DATA?.systems||[]).forEach(system=>{
+      const vals=new Set([
+        system.code,
+        system.assetSlug,
+        system.name,
+        ...(system.targets||[])
+      ].filter(Boolean));
+      vals.forEach(v=>{
+        const key=norm(v);
+        if(key)rows.push({system,key,raw:String(v)});
+      });
+    });
+    rows.sort((a,b)=>b.key.length-a.key.length);
+    return rows;
+  }
 
-    // Product codes are safest when visibly present.
-    for (const s of (DATA.systems || [])) {
-      const raw = String(root.textContent || "").toUpperCase();
-      if (new RegExp(`(^|[^A-Z0-9])${s.code.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}([^A-Z0-9]|$)`).test(raw)) return s;
+  function dpro57SystemFromLabel(label){
+    const raw=String(label||"").trim();
+    if(!raw||!DATA)return null;
+
+    // 1) Exact visible product code always wins.
+    const upper=raw.toUpperCase();
+    for(const system of (DATA.systems||[])){
+      const code=String(system.code||"").toUpperCase();
+      if(code && new RegExp(`(^|[^A-Z0-9])${code.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}([^A-Z0-9]|$)`).test(upper)){
+        return system;
+      }
     }
-    for (const item of aliases) if (item.key.length >= 2 && text.includes(item.key)) return item.system;
+
+    const key=norm(raw);
+    if(!key)return null;
+    const rows=dpro57AliasRows();
+
+    // 2) Exact normalized product name / target / asset slug.
+    const exact=rows.find(x=>x.key===key);
+    if(exact)return exact.system;
+
+    // 3) Longest product alias contained in a product-specific label.
+    //    Generic English "salon" is intentionally excluded here to avoid
+    //    Dog Salon -> beauty SALON false positives.
+    const contained=rows.find(x=>{
+      if(x.key.length<4)return false;
+      if(x.system.code==="SALON" && x.key==="salon")return false;
+      return key.includes(x.key);
+    });
+    return contained?.system||null;
+  }
+
+  function dpro57StructuredProductLabels(root){
+    if(!root)return [];
+    const labels=[];
+
+    // Explicit code attributes.
+    ["data-product-code","data-system-code","data-code","data-product"].forEach(a=>{
+      const v=root.getAttribute?.(a);
+      if(v)labels.push(v);
+    });
+    root.querySelectorAll?.("[data-product-code],[data-system-code],.sales17-code").forEach(el=>{
+      const v=el.getAttribute("data-product-code")||el.getAttribute("data-system-code")||el.textContent;
+      if(v)labels.push(v);
+    });
+
+    // Sales candidate product badges. Store name is deliberately NOT used.
+    root.querySelectorAll?.(".sales16-tags .badge").forEach(el=>{
+      const t=String(el.textContent||"").trim();
+      if(t && !/^(A|B|C)$/.test(t) && !/今日優先|おすすめ|営業利用|素材|HP|LINE公式|Instagram|問い合わせ|電話|未確認|準備済|未登録/.test(t)){
+        labels.push(t);
+      }
+    });
+
+    // Queue/detail structured product areas.
+    root.querySelectorAll?.(".queue-main .meta span,.queue-main .meta,.sales17-row-head,.sales23-item p").forEach(el=>{
+      const t=String(el.textContent||"").trim();
+      if(t)labels.push(t);
+    });
+    root.querySelectorAll?.(".detail-box").forEach(box=>{
+      const h=String(box.querySelector("h4")?.textContent||"");
+      if(/DPRO商品|対象商品|商品/.test(h)){
+        const p=String(box.querySelector("p")?.textContent||"").trim();
+        if(p)labels.push(p);
+      }
+    });
+
+    return [...new Set(labels.filter(Boolean))];
+  }
+
+  function matchSystem(root){
+    if(!root||!DATA)return null;
+
+    // V57 rule:
+    // assigned product code/name > structured product metadata > no match.
+    // Business/store names are never used for material selection.
+    for(const label of dpro57StructuredProductLabels(root)){
+      const hit=dpro57SystemFromLabel(label);
+      if(hit)return hit;
+    }
+
     return null;
   }
 
@@ -311,7 +392,7 @@
     openOverlayHtml(`
       <div class="dpro51-head"><div class="dpro51-head-main"><small>${esc(system.code)} / CENTRAL MATERIAL</small><h2>${esc(system.name)}</h2><p>商品サイトの中央マスターから営業素材を直接開きます。</p></div><button class="dpro51-close" data-dpro51-close aria-label="閉じる">×</button></div>
       <div class="dpro51-body">
-        <div class="dpro51-best"><div><small>NEXT BEST MATERIAL</small><b>${esc(best.label)} — ${esc(best.why)}</b></div><a class="dpro51-library-btn" href="${esc(best.url)}" target="_blank" rel="noopener">今これを開く ↗</a></div>
+        <div class="dpro51-best"><div><small>NEXT BEST MATERIAL</small><b><span class="dpro57-product-code">${esc(system.code)}</span> ${esc(best.label)} — ${esc(best.why)}</b></div><a class="dpro51-library-btn" href="${esc(best.url)}" target="_blank" rel="noopener">今これを開く ↗</a></div>
         <div class="dpro51-resource-grid">
           ${resourceCard("proposal",r.proposal)}
           ${resourceCard("lp",r.lp)}
@@ -365,8 +446,8 @@
     a.href = best.url; a.target = "_blank"; a.rel = "noopener";
     a.className = "btn btn-outline btn-sm dpro51-recommend";
     if (document.body.classList.contains("mobile") || document.querySelector(".bottom-nav")) a.className = "btn btn-outline btn-small dpro51-recommend";
-    a.textContent = `次に見せる：${best.label}`;
-    a.title = best.why;
+    a.innerHTML = `<span class="dpro57-code-inline"><span class="dpro57-product-code">${esc(system.code)}</span><span>次に見せる：${esc(best.label)}</span></span>`;
+    a.title = `${system.code} / ${best.why}`;
     return a;
   }
 
@@ -392,6 +473,13 @@
       const system = matchSystem(card);
       if (!actions || !system) return;
       const r = resourceSet(system);
+      if (!actions.querySelector("[data-dpro57-product-code]")) {
+        const code = document.createElement("span");
+        code.className = "dpro57-product-code";
+        code.setAttribute("data-dpro57-product-code","1");
+        code.textContent = system.code;
+        actions.appendChild(code);
+      }
       if (r.lp.url) {
         const a = document.createElement("a");
         a.className = "btn btn-outline btn-sm dpro51-recommend";
@@ -917,15 +1005,27 @@
     return [r.lp?.url,r.flyer?.url,r.demo?.url].filter(Boolean).length
   }
 
+  function dpro57AssignedProduct(card){
+    const badges=[...(card?.querySelectorAll?.(".sales16-tags .badge")||[])].map(x=>String(x.textContent||"").trim());
+    const candidates=badges.filter(x=>x&&!/^(A|B|C)$/.test(x)&&!/今日優先|おすすめ|営業利用|素材|HP|LINE公式|Instagram|問い合わせ|電話|未確認|準備済|未登録/.test(x));
+    for(const label of candidates){
+      const system=dpro57SystemFromLabel(label);
+      if(system)return {label,system};
+    }
+    const system=matchSystem(card);
+    return system?{label:system.name,system}:null;
+  }
+
   function dpro55CandidateInfo(card,index=0){
     if(!card)return null;
     const id=prospectIdFromCandidate(card);
     if(!id)return null;
-    const system=matchSystem(card);
+    const assigned=dpro57AssignedProduct(card);
+    const system=assigned?.system||null;
     const t=String(card.textContent||"");
     const name=String(card.querySelector("h3")?.textContent||"営業先").trim();
     const address=String(card.querySelector(".sales16-candidate-top p")?.textContent||"").trim();
-    const product=[...card.querySelectorAll(".sales16-tags .badge")].map(x=>String(x.textContent||"").trim()).find(x=>x&&!/^(A|B|C)$/.test(x)&&!/今日優先|おすすめ|営業利用|素材|HP|LINE|Instagram|問い合わせ|電話|未確認|準備/.test(x))||system?.name||"商品";
+    const product=assigned?.label||system?.name||"商品";
     const best=String(card.querySelector(".sales16-opportunity")?.textContent||"").replace(/^おすすめ[：:]\s*/,"").trim();
     const restricted=/営業利用注意|要利用条件確認/.test(t);
     const noEntry=/営業入口の確認待ち|営業入口 未確認/.test(t)||!best;
@@ -976,7 +1076,8 @@
       <div class="dpro55-top5-actions">
         <span class="dpro55-top5-score">V55優先 ${info.score}</span>
         <button type="button" class="btn btn-sm ${queued?"btn-outline dpro55-added":"btn-primary dpro55-add"}" ${queued?'data-dpro55-open-queue="1"':`data-dpro55-queue-add="${esc(info.id)}"`}>${queued?"今日の営業を見る":"今日の営業へ追加"}</button>
-        ${best?.url?`<a class="btn btn-outline btn-sm dpro53-next-material" href="${esc(best.url)}" target="_blank" rel="noopener">次に見せる：${esc(best.label)}</a>`:""}
+        <span class="dpro57-product-code">${esc(info.system?.code||"")}</span>
+        ${best?.url?`<a class="btn btn-outline btn-sm dpro53-next-material" href="${esc(best.url)}" target="_blank" rel="noopener" title="${esc((info.system?.code||"")+" / "+(best.why||""))}">次に見せる：${esc(best.label)}</a>`:""}
         <button type="button" class="btn btn-outline btn-sm" data-prospect="${esc(info.id)}">詳細・営業実行</button>
       </div>
     </article>`
@@ -1244,6 +1345,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-56 TOP5 layout unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-57 product-code priority unavailable:", centralError);
   });
 })();
