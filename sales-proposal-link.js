@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-51 — CENTRAL MATERIAL SYNC / 2026-08-14
+/* DPRO SALESNAVI-52 — QUICK MATERIAL ACCESS / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-51-CENTRAL-MATERIAL-SYNC-20260814";
+  const VERSION = "SALESNAVI-52-QUICK-MATERIAL-ACCESS-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -63,6 +63,8 @@
       .dpro51-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
       .dpro51-system{background:#fff;border:1px solid #dce5ed;border-radius:15px;padding:13px}.dpro51-system-head{display:flex;gap:9px;align-items:center}.dpro51-code{font-size:9px;background:#e8f6f1;color:#087553;border-radius:999px;padding:4px 7px;font-weight:900}.dpro51-system h3{font-size:14px;margin:0}.dpro51-system p{font-size:10px;color:#718195;line-height:1.55;margin:7px 0 10px}.dpro51-mini-actions{display:flex;gap:6px;flex-wrap:wrap}.dpro51-mini-actions a,.dpro51-mini-actions button{border:1px solid #d3dee7;background:#fff;color:#334b63;border-radius:9px;padding:7px 9px;text-decoration:none;font:inherit;font-size:10px;font-weight:800;cursor:pointer}
       .dpro51-sync{background:#fff;border:1px solid #dce5ed;border-radius:17px;padding:15px;margin:0 0 18px}.dpro51-sync h2{font-size:15px;margin:0 0 10px}.dpro51-sync-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}.dpro51-sync-box{background:#f4f8fa;border-radius:11px;padding:10px}.dpro51-sync-box span{display:block;font-size:9px;color:#718195}.dpro51-sync-box b{display:block;font-size:17px;margin-top:4px;color:#087553}.dpro51-sync-note{font-size:10px;color:#718195;line-height:1.6;margin-top:9px}
+      .dpro52-top-material{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important;font-weight:850!important}
+      .dpro52-dashboard-material{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
       @media(max-width:760px){#dpro51Overlay{padding:0;align-items:flex-end}#dpro51Panel{width:100%;max-height:92dvh;border-radius:22px 22px 0 0}.dpro51-resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dpro51-list{grid-template-columns:1fr}.dpro51-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
@@ -363,14 +365,52 @@
     nav.append(label,b);
   }
 
-  function addStaffTop(){
+  function addTopShortcut(){
     const actions = document.querySelector(".top-actions");
-    if (!actions || actions.querySelector(`[${LIB_MARK}]`)) return;
+    if (!actions || actions.querySelector("[data-dpro52-top-material]")) return;
+
+    const isStaff = Boolean(document.querySelector(".bottom-nav"));
     const b = document.createElement("button");
-    b.type = "button"; b.className = "icon-btn"; b.setAttribute(LIB_MARK,"1");
-    b.title = "営業素材ライブラリ"; b.setAttribute("aria-label","営業素材ライブラリ");
-    b.textContent = "▣"; b.style.color = "#087553";
-    b.addEventListener("click", openLibrary);
+    b.type = "button";
+    b.setAttribute("data-dpro52-top-material","1");
+
+    if (isStaff) {
+      b.className = "icon-btn";
+      b.title = "営業素材";
+      b.setAttribute("aria-label","営業素材ライブラリ");
+      b.textContent = "▣";
+      b.style.color = "#087553";
+    } else {
+      /* PC / iPad: icon only was too hard to understand, so use a labeled button. */
+      const oldIcon = actions.querySelector('[data-dpro51-library-link]');
+      if (oldIcon) oldIcon.remove();
+      b.className = "btn btn-outline btn-sm dpro52-top-material";
+      b.textContent = "▣ 営業素材";
+      b.title = "50業種の提案LP・A4チラシ・DEMO";
+    }
+
+    b.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openLibrary();
+    });
+    actions.insertBefore(b, actions.firstChild);
+  }
+
+  function addDashboardShortcut(){
+    const actions = document.querySelector("#view-dashboard .page-head .head-actions");
+    if (!actions || actions.querySelector("[data-dpro52-dashboard-material]")) return;
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "btn btn-outline dpro52-dashboard-material";
+    b.setAttribute("data-dpro52-dashboard-material","1");
+    b.textContent = "▣ 営業素材";
+    b.title = "50業種の提案LP・A4チラシ・PDF・LIVE DEMO";
+    b.addEventListener("click", e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openLibrary();
+    });
     actions.insertBefore(b, actions.firstChild);
   }
 
@@ -425,7 +465,8 @@
     enhanceSalesCandidates();
     enhanceMaterialRows();
     addDesktopNav();
-    addStaffTop();
+    addTopShortcut();
+    addDashboardShortcut();
     addIndexCard();
     addSystemCheck();
     replaceOldLabels();

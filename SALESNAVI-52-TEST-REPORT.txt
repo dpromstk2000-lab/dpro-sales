@@ -1,0 +1,19 @@
+DPRO SALESNAVI-52 QUICK MATERIAL ACCESS
+DATE: 2026-08-14
+
+PURPOSE:
+The central-material integration was working, but on the PC screen the material entry point appeared only as a small square icon.
+V52 makes the sales-material access obvious and one-click.
+
+CHANGES:
+- PC / iPad top bar: icon-only button -> labeled "▣ 営業素材"
+- Today dashboard: adds visible "▣ 営業素材" beside 営業分析 / 営業先を探す
+- Smartphone keeps compact icon to preserve screen width
+- Existing 50-system material library remains:
+  proposal LP / A4 HTML / A4 PDF / LIVE DEMO / PRODUCT
+- Existing queue/candidate material buttons remain
+- Green S favicon remains
+- Existing owner/staff/business API logic is untouched
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
