@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-53 — ACTION FLOW / 2026-08-14
+/* DPRO SALESNAVI-54 — TODAY TOP5 / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-53-ACTION-FLOW-20260814";
+  const VERSION = "SALESNAVI-54-TODAY-TOP5-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -74,6 +74,26 @@
       .dpro53-flow-strip{margin-top:10px;padding:10px;border:1px solid #cde7dc;border-radius:12px;background:#f4fbf8;display:flex;gap:7px;align-items:center;flex-wrap:wrap}
       .dpro53-flow-strip strong{color:#087553;font-size:11px;margin-right:auto}
       .dpro53-candidate-help{margin:0 0 12px;padding:10px 12px;border:1px solid #cfe7dc;background:#f5fcf9;border-radius:12px;color:#46675d;font-size:11px;line-height:1.65}
+      .dpro54-top-card{border:1px solid #cfe4da!important;background:#fff!important;border-radius:14px!important}
+      .dpro54-top-card[data-dpro54-rank="1"]{border-color:#8fd3b9!important;box-shadow:0 8px 22px rgba(14,141,103,.08)}
+      .dpro54-top-card .dpro54-action-stack{display:flex;gap:6px;justify-content:flex-end;align-items:center;flex-wrap:wrap}
+      .dpro54-top-card .dpro54-action-stack .btn{white-space:nowrap}
+      .dpro54-rank-chip{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;border-radius:9px;background:#e8f6f1;color:#087553;font-size:12px;font-weight:900}
+      .dpro54-rank-chip.first{background:#0e8d67;color:#fff}
+      .dpro54-rest{border:1px solid #dbe6ed;border-radius:14px;background:#fff;margin-top:12px;overflow:hidden}
+      .dpro54-rest>summary{cursor:pointer;list-style:none;padding:13px 15px;font-size:12px;font-weight:850;color:#334b63;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#f7fafc}
+      .dpro54-rest>summary::-webkit-details-marker{display:none}
+      .dpro54-rest>summary:after{content:"＋";color:#087553;font-size:17px;font-weight:900}
+      .dpro54-rest[open]>summary:after{content:"−"}
+      .dpro54-rest-body{padding:0}
+      .dpro54-rest .sales16-candidate{margin:0!important;border-left:0!important;border-right:0!important;border-radius:0!important}
+      .dpro54-rest .sales16-candidate:first-child{border-top:0!important}
+      .dpro54-rest .sales16-candidate:last-child{border-bottom:0!important}
+      .dpro54-hidden-top-duplicate{display:none!important}
+      .dpro54-top-actions-note{font-size:10px;color:#718195;margin-left:6px}
+      .dpro54-open-queue{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
+      .dpro54-batch{background:#0e8d67!important;border-color:#0e8d67!important;color:#fff!important}
+      .dpro54-compact-reasons .sales118-reason:nth-child(n+5){display:none!important}
       @media(max-width:760px){#dpro51Overlay{padding:0;align-items:flex-end}#dpro51Panel{width:100%;max-height:92dvh;border-radius:22px 22px 0 0}.dpro51-resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dpro51-list{grid-template-columns:1fr}.dpro51-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
@@ -558,6 +578,216 @@
     document.querySelectorAll("[data-dpro52-dashboard-material]").forEach(el => el.remove());
   }
 
+
+  function dpro54OpenQueueView(){
+    const nav = document.querySelector('.nav-btn[data-view="queue"]');
+    if (nav) nav.click();
+  }
+
+  function dpro54BindOpenQueue(button){
+    if (!button || button.dataset.dpro54OpenBound === "1") return;
+    button.dataset.dpro54OpenBound = "1";
+    button.addEventListener("click", e => {
+      if (button.dataset.dpro54OpenQueue !== "1") return;
+      e.preventDefault();
+      e.stopPropagation();
+      dpro54OpenQueueView();
+    });
+  }
+
+  function dpro54ConvertQueuedButton(button){
+    if (!button) return;
+    dpro54BindOpenQueue(button);
+    const queued = button.disabled || /追加済み|キュー済み/.test(String(button.textContent || ""));
+    const id = button.getAttribute("data-sales119-queue") || button.dataset.dpro54Prospect || "";
+    if (id) button.dataset.dpro54Prospect = id;
+
+    if (queued) {
+      button.disabled = false;
+      button.removeAttribute("data-sales119-queue");
+      button.dataset.dpro54OpenQueue = "1";
+      button.classList.remove("dpro53-queue-add");
+      button.classList.add("dpro54-open-queue");
+      button.textContent = "今日の営業を見る";
+    } else if (id) {
+      button.dataset.dpro54OpenQueue = "0";
+      button.setAttribute("data-sales119-queue", id);
+    }
+  }
+
+  function dpro54EnhanceTop5Panel(){
+    const panel = document.querySelector(".sales23-panel");
+    const list = document.querySelector("#sales23PriorityList");
+    if (!panel || !list) return;
+
+    const title = panel.querySelector(".panel-head h3");
+    const hint = panel.querySelector(".panel-head .hint");
+    if (title) title.textContent = "今日おすすめTOP5";
+    if (hint) hint.textContent = "まずこの5件だけ確認。追加 → 次に見せる資料 → 詳細・営業実行の3操作に絞ります。";
+
+    const batch = document.querySelector("#sales119QueueTop");
+    if (batch) {
+      batch.textContent = "上位5件を今日の営業へ一括追加";
+      batch.classList.add("dpro54-batch");
+    }
+
+    const topActions = panel.querySelector(".sales23-actions");
+    if (topActions && !topActions.querySelector("[data-dpro54-open-queue]")) {
+      const open = document.createElement("button");
+      open.type = "button";
+      open.className = "btn btn-outline btn-sm dpro54-open-queue";
+      open.setAttribute("data-dpro54-open-queue","1");
+      open.textContent = "今日の営業を見る";
+      open.addEventListener("click", dpro54OpenQueueView);
+      topActions.appendChild(open);
+    }
+
+    const items = [...list.querySelectorAll(".sales23-item")];
+    items.forEach((item, index) => {
+      if (index >= 5) {
+        item.hidden = true;
+        return;
+      }
+      item.hidden = false;
+      item.classList.add("dpro54-top-card","dpro54-compact-reasons");
+      item.dataset.dpro54Rank = String(index + 1);
+
+      const nativeRank = item.querySelector(".sales23-rank");
+      if (nativeRank) {
+        nativeRank.classList.add("dpro54-rank-chip");
+        nativeRank.classList.toggle("first", index === 0);
+        nativeRank.textContent = String(index + 1);
+      }
+
+      const queueBtn = item.querySelector("[data-sales119-queue], [data-dpro54-prospect]");
+      const prospectId = queueBtn?.getAttribute("data-sales119-queue") || queueBtn?.dataset.dpro54Prospect || "";
+      if (queueBtn) {
+        queueBtn.dataset.dpro54Prospect = prospectId;
+        dpro54ConvertQueuedButton(queueBtn);
+      }
+
+      let stack = item.querySelector(".dpro54-action-stack");
+      if (!stack) {
+        stack = document.createElement("div");
+        stack.className = "dpro54-action-stack";
+        const right = item.lastElementChild;
+        if (right) {
+          const score = right.querySelector(".sales23-score");
+          if (score) stack.appendChild(score);
+          if (queueBtn) stack.appendChild(queueBtn);
+          right.innerHTML = "";
+          right.appendChild(stack);
+        }
+      }
+
+      if (prospectId && !stack.querySelector("[data-dpro54-detail]")) {
+        const detail = document.createElement("button");
+        detail.type = "button";
+        detail.className = "btn btn-outline btn-sm";
+        detail.setAttribute("data-dpro54-detail", prospectId);
+        detail.setAttribute("data-prospect", prospectId);
+        detail.textContent = "詳細・営業実行";
+        stack.appendChild(detail);
+      }
+
+      if (!stack.querySelector("[data-dpro54-material]")) {
+        const system = matchSystem(item);
+        if (system) {
+          const best = recommend(system, item.textContent || "");
+          if (best?.url) {
+            const a = document.createElement("a");
+            a.href = best.url;
+            a.target = "_blank";
+            a.rel = "noopener";
+            a.className = "btn btn-outline btn-sm dpro53-next-material";
+            a.setAttribute("data-dpro54-material","1");
+            a.textContent = `次に見せる：${best.label}`;
+            a.title = best.why || "";
+            stack.insertBefore(a, stack.querySelector("[data-dpro54-detail]") || null);
+          }
+        }
+      }
+    });
+  }
+
+  function dpro54TopProspectIds(){
+    return new Set(
+      [...document.querySelectorAll("#sales23PriorityList .sales23-item")]
+        .filter((x,i) => i < 5)
+        .map(item => {
+          const b = item.querySelector("[data-sales119-queue], [data-dpro54-prospect]");
+          return b?.getAttribute("data-sales119-queue") || b?.dataset.dpro54Prospect || "";
+        })
+        .filter(Boolean)
+    );
+  }
+
+  function dpro54OrganizeCandidateList(){
+    const root = document.querySelector("#sales16CandidateList");
+    if (!root) return;
+
+    const cards = [...root.querySelectorAll(".sales16-candidate")];
+    if (!cards.length) return;
+
+    const topIds = dpro54TopProspectIds();
+
+    cards.forEach(card => {
+      const id = prospectIdFromCandidate(card);
+      card.classList.toggle("dpro54-hidden-top-duplicate", Boolean(id && topIds.has(id)));
+
+      const actions = card.querySelector(".sales16-actions");
+      if (!actions) return;
+
+      const queue = actions.querySelector("[data-dpro53-queue-add], [data-sales119-queue], [data-dpro54-prospect]");
+      if (queue) {
+        const pid = queue.getAttribute("data-sales119-queue") || queue.dataset.dpro54Prospect || id || "";
+        if (pid) queue.dataset.dpro54Prospect = pid;
+        dpro54ConvertQueuedButton(queue);
+      }
+    });
+
+    let details = root.querySelector(":scope > .dpro54-rest");
+    if (!details) {
+      const help = root.querySelector("[data-dpro53-candidate-help]");
+      if (help) help.remove();
+
+      details = document.createElement("details");
+      details.className = "dpro54-rest";
+      const summary = document.createElement("summary");
+      summary.innerHTML = '<span data-dpro54-rest-label>その他の候補</span><span class="dpro54-top-actions-note">必要なときだけ開く</span>';
+      const body = document.createElement("div");
+      body.className = "dpro54-rest-body";
+      details.append(summary, body);
+
+      cards.forEach(card => body.appendChild(card));
+      root.appendChild(details);
+    }
+
+    const currentCards = [...details.querySelectorAll(".sales16-candidate")];
+    const restCount = currentCards.filter(card => !card.classList.contains("dpro54-hidden-top-duplicate")).length;
+    const label = details.querySelector("[data-dpro54-rest-label]");
+    if (label) label.textContent = `その他の候補 ${restCount}件を表示`;
+    details.hidden = restCount === 0;
+  }
+
+  function dpro54UpdateCandidatePrimaryActions(){
+    document.querySelectorAll("#sales23PriorityList .sales23-item").forEach((item,index) => {
+      if (index >= 5) return;
+      const stack = item.querySelector(".dpro54-action-stack");
+      if (!stack) return;
+
+      // Keep only the score + 3 actions on TOP5:
+      // 1) add/open queue, 2) next material, 3) detail/sales execution.
+      const queue = stack.querySelector("[data-sales119-queue], [data-dpro54-prospect]");
+      const material = stack.querySelector("[data-dpro54-material]");
+      const detail = stack.querySelector("[data-dpro54-detail]");
+      const score = stack.querySelector(".sales23-score");
+      [...stack.children].forEach(el => {
+        if (![score,queue,material,detail].includes(el)) el.hidden = true;
+      });
+    });
+  }
+
   function addIndexCard(){
     const grid = document.querySelector("body .grid");
     if (!grid || grid.querySelector(`[${LIB_MARK}]`)) return;
@@ -611,6 +841,9 @@
     enhanceSalesCandidates();
     enhanceCandidateActions();
     enhanceDetailFlow();
+    dpro54EnhanceTop5Panel();
+    dpro54OrganizeCandidateList();
+    dpro54UpdateCandidatePrimaryActions();
     enhanceMaterialRows();
     addDesktopNav();
     addTopShortcut();
@@ -639,6 +872,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-53 action flow unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-54 TOP5 unavailable:", centralError);
   });
 })();

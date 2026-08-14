@@ -1,0 +1,29 @@
+DPRO SALESNAVI-54 TODAY TOP5
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+PURPOSE:
+Turn the long prospect list into a decision screen:
+23 prospects -> TOP5 -> today's queue -> next material -> sales execution.
+
+V54:
+- Renames the existing priority panel to "今日おすすめTOP5".
+- Shows only ranks 1-5 in the priority panel.
+- Reuses the existing safe "上位5件を今日の営業キューへ" handler.
+- Adds "今日の営業を見る".
+- TOP5 main operations are limited to:
+  1) 今日の営業へ追加 / 今日の営業を見る
+  2) 次に見せる資料
+  3) 詳細・営業実行
+- The full candidate list is collapsed into "その他の候補 N件を表示".
+- TOP5 duplicate rows are hidden from the collapsed list.
+- Existing prospect data, scores, safety checks, APIs and record logic are unchanged.
+- Existing central material library remains.
+- Green S favicon remains.
+- owner.html / staff.html / owner-ipad.html are NOT replaced.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all files -> drag to repository root -> Commit changes.
