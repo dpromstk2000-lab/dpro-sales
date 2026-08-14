@@ -1,0 +1,75 @@
+DPRO SALESNAVI V65.2 GitHub反映手順
+===================================
+
+VERSION:
+SALESNAVI-65.2-DISPLAY-UNIFY-20260814
+
+今回の目的:
+V65.1で正しくなった「本番営業クイック操作」と、
+その下に残っていた従来の店舗詳細表示を統一します。
+
+【V65.2修正】
+1. 下の「営業ステータス」
+   予定
+   ↓
+   本日営業済み
+   ※本日の営業活動がある場合
+
+2. 下の「次回予定」
+   8/17(月) 14:00:00
+   次回の確認・連絡を行う。
+   ↓
+   8/17(月) LINE送付LPの反応・返信確認
+
+3. 店舗上部の青いカードにある
+   「今日の営業へ追加」
+   ↓
+   本日営業済みなら
+   「本日の営業完了」
+   と表示して無効化
+
+4. 今日の営業キューに入っているだけなら
+   「今日の営業に登録済み」
+   と表示して重複追加を防止
+
+5. DBの営業ステータス・次回予定自体は変更しません。
+   V65.2は店舗詳細画面の表示統一です。
+
+【Cloudflare / Supabase】
+変更なし。
+Cloudflare WorkerはV64のままです。
+Supabase SQL実行不要です。
+
+【ZIP内6ファイル】
+1. config.js
+2. config.txt
+3. sales65-quick-sales.js
+4. sales65-quick-sales.txt
+5. V65_2_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_2-TEST-REPORT.txt
+
+【GitHubアップロード先】
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+【反映手順】
+1. DPRO_SALESNAVI_65_2_DISPLAY_UNIFY_GITHUB.zip を解凍
+2. 中の6ファイルを全部選択
+3. 上記GitHub URLを開く
+4. 6ファイルをリポジトリ直下へドラッグ＆ドロップ
+5. Commit changes
+6. 営業ナビを開く
+7. Ctrl + Shift + R
+8. 営業パイプライン → Ali’i Mili → 詳細
+
+【Ali’i Mili期待表示】
+上の青い店舗カード:
+本日の営業完了
+
+本番営業クイック操作:
+今日の営業 = 本日営業済み｜LINE・LP送付
+次の行動 = 8/17(月) LINE送付LPの反応・返信確認
+✓ 本日LINE・LP送付済み
+
+下の従来表示:
+営業ステータス = 本日営業済み
+次回予定 = 8/17(月) LINE送付LPの反応・返信確認

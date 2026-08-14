@@ -1,0 +1,40 @@
+DPRO SALESNAVI V65.2 TEST REPORT
+===================================
+Version: SALESNAVI-65.2-DISPLAY-UNIFY-20260814
+Date: 2026-08-14
+
+BASE:
+V65.1 + V64-R1 + V63 + V61
+
+TARGET:
+店舗詳細内の「上のクイック操作」と「下の従来表示」を統一。
+
+EXPECTED:
+- V65.1 today activity detection preserved
+- Legacy 営業ステータス reflects today's activity
+- Legacy 次回予定 uses the same human-readable next-action text
+- Legacy next-action time like 14:00:00 is hidden from the unified display
+- Hero V64 queue button becomes "本日の営業完了" after today's activity
+- Hero queue button is disabled after completed activity
+- Active queue without activity becomes "今日の営業に登録済み"
+- DB values are not mutated
+- Cloudflare Worker unchanged
+- Supabase SQL unchanged
+- V61 / V63 / V64-R1 preserved
+
+RESULTS:
+version_65_2: PASS
+v61_preserved: PASS
+v63_preserved: PASS
+v64r1_preserved: PASS
+cache_buster_652: PASS
+legacy_status_sync: PASS
+legacy_next_sync: PASS
+hero_button_sync: PASS
+hero_completed: PASS
+hero_registered: PASS
+safe_text_write: PASS
+no_worker: PASS
+no_sql: PASS
+sales65-quick-sales.js syntax: PASS
+config.js syntax: PASS

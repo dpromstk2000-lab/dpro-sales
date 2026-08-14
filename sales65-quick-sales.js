@@ -1,6 +1,6 @@
 /**
- * DPRO SALESNAVI V65.1
- * Version: SALESNAVI-65.1-ACTIVITY-AWARE-20260814
+ * DPRO SALESNAVI V65.2
+ * Version: SALESNAVI-65.2-DISPLAY-UNIFY-20260814
  *
  * Purpose:
  * Compress real sales operations into one store detail drawer.
@@ -21,12 +21,18 @@
  * - Generic next action text is presented as LINE LP reply-check when appropriate.
  * - Missing phone display is clarified as "電話番号未取得".
  *
+ * V65.2:
+ * - Unifies the legacy detail boxes with the V65 quick-operation state.
+ * - "営業ステータス" reflects today's completed sales.
+ * - "次回予定" uses the same human-readable follow-up wording and hides unnecessary time.
+ * - The blue hero-area V64 button becomes a disabled completion/registered state when appropriate.
+ *
  * No SQL change. No Worker change.
  */
 (() => {
   "use strict";
 
-  const VERSION = "SALESNAVI-65.1-ACTIVITY-AWARE-20260814";
+  const VERSION = "SALESNAVI-65.2-DISPLAY-UNIFY-20260814";
   const ACTIVE_QUEUE = new Set(["queued", "planned", "in_progress"]);
   const sentLocks = new Set();
   let injecting = false;
@@ -192,6 +198,11 @@
         background:#dfece7!important;color:#356154!important;border:1px solid #b9d5ca!important;
         box-shadow:none!important;cursor:default!important;opacity:1!important
       }
+      #drawerBody .detail-hero .detail-actions button.sales652-hero-done,
+      #drawerBody .detail-hero .detail-actions button:disabled.sales652-hero-done{
+        background:#dcebe6!important;color:#2f5e50!important;border:1px solid rgba(255,255,255,.34)!important;
+        cursor:default!important;opacity:1!important;box-shadow:none!important
+      }
       .sales65-primary{grid-column:1/-1}
       .sales65-import-next{
         margin:10px 0 14px;padding:13px 14px;border:2px solid #a8ddca;background:#f2fbf7;
@@ -323,6 +334,66 @@
     return `${fmtDate(next.due_date)} ${description}`;
   }
 
+  function setTextIfChanged(el, text) {
+    if (!el) return;
+    const next = String(text ?? "");
+    if (el.textContent !== next) el.textContent = next;
+  }
+
+  function detailBoxByTitle(title) {
+    return [...document.querySelectorAll("#drawerBody .detail-box")]
+      .find(box => box.querySelector("h4")?.textContent?.trim() === title) || null;
+  }
+
+  function syncLegacyDetailDisplay({ detail, queueItem, activityLabel, lineLpToday }) {
+    const statusBox = detailBoxByTitle("営業ステータス");
+    const nextBox = detailBoxByTitle("次回予定");
+
+    const queueStatus = String(queueItem?.queue_status || "");
+    const finished = ["completed", "skipped", "cancelled"].includes(queueStatus);
+
+    if (statusBox) {
+      const p = statusBox.querySelector("p");
+      if (activityLabel || queueStatus === "completed") {
+        setTextIfChanged(p, "本日営業済み");
+        statusBox.dataset.sales652Unified = "done";
+      } else if (finished) {
+        setTextIfChanged(p, "本日の営業終了");
+        statusBox.dataset.sales652Unified = "ended";
+      }
+    }
+
+    if (nextBox) {
+      const p = nextBox.querySelector("p");
+      const friendlyNext = nextActionDisplay(detail, lineLpToday);
+      setTextIfChanged(p, friendlyNext === "次回予定なし" ? "未設定" : friendlyNext);
+      nextBox.dataset.sales652Unified = "1";
+    }
+
+    const heroButton = document.querySelector(
+      "#drawerBody .detail-hero [data-sales64-direct-queue]"
+    );
+    if (heroButton) {
+      if (activityLabel || queueStatus === "completed") {
+        heroButton.disabled = true;
+        setTextIfChanged(heroButton, "本日の営業完了");
+        heroButton.classList.add("sales652-hero-done");
+      } else if (["skipped", "cancelled"].includes(queueStatus)) {
+        heroButton.disabled = true;
+        setTextIfChanged(heroButton, "本日の営業終了");
+        heroButton.classList.add("sales652-hero-done");
+      } else if (queueItem && ACTIVE_QUEUE.has(queueStatus || "queued")) {
+        heroButton.disabled = true;
+        setTextIfChanged(heroButton, "今日の営業に登録済み");
+        heroButton.classList.add("sales652-hero-done");
+      } else {
+        heroButton.disabled = false;
+        setTextIfChanged(heroButton, "今日の営業へ追加");
+        heroButton.classList.remove("sales652-hero-done");
+      }
+    }
+  }
+
   function applyActionState(root, { detail, queueItem }) {
     if (!root) return;
 
@@ -362,6 +433,13 @@
         queueBtn.textContent = "今日の営業へ追加";
       }
     }
+
+    syncLegacyDetailDisplay({
+      detail,
+      queueItem,
+      activityLabel,
+      lineLpToday
+    });
   }
 
 
@@ -459,7 +537,7 @@
       const queueItem = todayQueueFor(queue, id);
       applyActionState(root, { detail, queueItem });
     } catch (e) {
-      console.warn("[V65.1] status update failed:", e);
+      console.warn("[V65.2] status update failed:", e);
     }
   }
 
@@ -493,7 +571,7 @@
       root.innerHTML = `
         <div class="sales65-title">
           <h4>本番営業クイック操作</h4>
-          <span>V65.1</span>
+          <span>V65.2</span>
         </div>
         <p class="sales65-lead">店舗詳細から、素材確認・今日の営業・送付記録・フォローまで進めます。</p>
         <div class="sales65-status">

@@ -18,7 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
-  usabilityVersion: "SALESNAVI-65.1-ACTIVITY-AWARE-20260814",
+  usabilityVersion: "SALESNAVI-65.2-DISPLAY-UNIFY-20260814",
   timezone: "Asia/Tokyo"
 });
 
@@ -61,7 +61,7 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.1: production sales quick flow + today activity aware UI */
+/* V65.2: production sales quick flow + unified detail display */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -70,7 +70,7 @@ window.DPRO_CONFIG = Object.freeze({
   if (document.querySelector('script[data-sales65-quick-sales]')) return;
 
   var s = document.createElement("script");
-  s.src = "./sales65-quick-sales.js?v=20260814-651";
+  s.src = "./sales65-quick-sales.js?v=20260814-652";
   s.async = false;
   s.dataset.sales65QuickSales = "1";
   document.head.appendChild(s);
