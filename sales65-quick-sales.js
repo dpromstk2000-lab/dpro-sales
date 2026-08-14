@@ -1,6 +1,6 @@
 /**
- * DPRO SALESNAVI V65
- * Version: SALESNAVI-65-QUICK-SALES-20260814
+ * DPRO SALESNAVI V65.1
+ * Version: SALESNAVI-65.1-ACTIVITY-AWARE-20260814
  *
  * Purpose:
  * Compress real sales operations into one store detail drawer.
@@ -14,12 +14,19 @@
  * - フォローを見る.
  * - After Google Places import, "今登録した店舗を開く" shortcut.
  *
+ * V65.1:
+ * - Reads today's activities and reflects the actual completed state.
+ * - LINE + LP activity today => "✓ 本日LINE・LP送付済み".
+ * - Completed/recorded sales disables redundant "今日の営業へ追加".
+ * - Generic next action text is presented as LINE LP reply-check when appropriate.
+ * - Missing phone display is clarified as "電話番号未取得".
+ *
  * No SQL change. No Worker change.
  */
 (() => {
   "use strict";
 
-  const VERSION = "SALESNAVI-65-QUICK-SALES-20260814";
+  const VERSION = "SALESNAVI-65.1-ACTIVITY-AWARE-20260814";
   const ACTIVE_QUEUE = new Set(["queued", "planned", "in_progress"]);
   const sentLocks = new Set();
   let injecting = false;
@@ -180,6 +187,11 @@
       .sales65-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
       .sales65-actions .btn{width:100%;min-height:42px;font-size:12px}
       .sales65-line-sent{background:linear-gradient(135deg,#148e69,#087354)!important;color:#fff!important;border:0!important}
+      .sales65-line-sent.sales651-done,
+      .sales65-line-sent:disabled.sales651-done{
+        background:#dfece7!important;color:#356154!important;border:1px solid #b9d5ca!important;
+        box-shadow:none!important;cursor:default!important;opacity:1!important
+      }
       .sales65-primary{grid-column:1/-1}
       .sales65-import-next{
         margin:10px 0 14px;padding:13px 14px;border:2px solid #a8ddca;background:#f2fbf7;
@@ -217,6 +229,141 @@
       a?.result_code === "outreach_line_sent" && isTodayJst(a.activity_at)
     );
   }
+  function activityText(a) {
+    return [
+      a?.summary,
+      a?.details,
+      a?.notes,
+      a?.memo,
+      a?.result_code
+    ].filter(Boolean).join(" ");
+  }
+
+  function todayActivities(detail) {
+    return (detail?.activities || [])
+      .filter(a => isTodayJst(a?.activity_at))
+      .sort((a, b) => new Date(b?.activity_at || 0) - new Date(a?.activity_at || 0));
+  }
+
+  function isLineActivity(a) {
+    return String(a?.activity_type || "").toLowerCase() === "line"
+      || /^outreach_line_/i.test(String(a?.result_code || ""));
+  }
+
+  function isLpActivity(a) {
+    const text = activityText(a);
+    return /(?:^|[^A-Z])LP(?:[^A-Z]|$)|提案LP|営業LP|ご案内ページ/i.test(text)
+      || String(a?.result_code || "") === "outreach_line_sent";
+  }
+
+  function hasLineLpActivityToday(detail) {
+    return todayActivities(detail).some(a => isLineActivity(a) && isLpActivity(a));
+  }
+
+  function latestTodayActivity(detail) {
+    return todayActivities(detail)[0] || null;
+  }
+
+  function todayActivityLabel(detail) {
+    const acts = todayActivities(detail);
+    if (!acts.length) return "";
+
+    const lpLine = acts.find(a => isLineActivity(a) && isLpActivity(a));
+    if (lpLine) return "本日営業済み｜LINE・LP送付";
+
+    const line = acts.find(isLineActivity);
+    if (line) return "本日営業済み｜LINE";
+
+    const latest = acts[0];
+    const type = String(latest?.activity_type || "").toLowerCase();
+    const typeLabel = ({
+      visit: "訪問",
+      phone: "電話",
+      email: "メール",
+      line: "LINE",
+      other: "その他"
+    })[type] || "";
+
+    const summary = String(latest?.summary || "").trim();
+    if (summary && summary.length <= 24) {
+      return `本日営業済み｜${summary}`;
+    }
+    return typeLabel ? `本日営業済み｜${typeLabel}` : "本日営業済み";
+  }
+
+  function todayQueueFor(items, prospectId) {
+    return (items || []).find(q => q?.prospect_id === prospectId) || null;
+  }
+
+  function queueStatusText(queueItem, activityLabel) {
+    if (activityLabel) return activityLabel;
+    if (!queueItem) return "今日の営業は未登録";
+
+    const s = String(queueItem.queue_status || "queued");
+    if (["completed", "skipped", "cancelled"].includes(s)) {
+      return s === "completed" ? "本日の営業は完了" : "本日の営業は終了";
+    }
+    return "今日の営業に登録済み";
+  }
+
+  function nextActionDisplay(detail, lineLpToday) {
+    const next = (detail?.nextActions || [])
+      .filter(a => ["pending", "snoozed"].includes(String(a?.status || "")))
+      .sort((a,b) => String(a.due_date || "").localeCompare(String(b.due_date || "")))[0];
+
+    if (!next) return "次回予定なし";
+
+    let description = String(next.description || "次回確認").trim();
+    if (
+      lineLpToday &&
+      /^(次回の確認・連絡を行う。?|次回確認|確認・連絡)$/u.test(description)
+    ) {
+      description = "LINE送付LPの反応・返信確認";
+    }
+    return `${fmtDate(next.due_date)} ${description}`;
+  }
+
+  function applyActionState(root, { detail, queueItem }) {
+    if (!root) return;
+
+    const lineLpToday = hasLineLpActivityToday(detail);
+    const activityLabel = todayActivityLabel(detail);
+    const q = root.querySelector("[data-sales65-status-queue]");
+    const a = root.querySelector("[data-sales65-status-activity]");
+    const lineBtn = root.querySelector("[data-sales65-line-sent]");
+    const queueBtn = root.querySelector("[data-sales65-queue]");
+
+    if (q) q.textContent = queueStatusText(queueItem, activityLabel);
+    if (a) a.textContent = nextActionDisplay(detail, lineLpToday);
+
+    if (lineBtn) {
+      if (lineLpToday) {
+        lineBtn.disabled = true;
+        lineBtn.textContent = "✓ 本日LINE・LP送付済み";
+        lineBtn.classList.add("sales651-done");
+      } else {
+        lineBtn.disabled = false;
+        lineBtn.textContent = "LINEでLP送付済み";
+        lineBtn.classList.remove("sales651-done");
+      }
+    }
+
+    if (queueBtn) {
+      const status = String(queueItem?.queue_status || "");
+      const finished = ["completed", "skipped", "cancelled"].includes(status);
+      if (activityLabel || finished) {
+        queueBtn.disabled = true;
+        queueBtn.textContent = "本日の営業は完了";
+      } else if (queueItem && ACTIVE_QUEUE.has(status || "queued")) {
+        queueBtn.disabled = true;
+        queueBtn.textContent = "今日の営業に登録済み";
+      } else {
+        queueBtn.disabled = false;
+        queueBtn.textContent = "今日の営業へ追加";
+      }
+    }
+  }
+
 
   function hasPendingReplyCheck(detail) {
     return (detail?.nextActions || []).some(a =>
@@ -245,9 +392,9 @@
     try {
       const [detail, queue] = await Promise.all([fetchDetail(id), fetchTodayQueue()]);
 
-      if (hasLineSentToday(detail)) {
-        toast("本日はすでにLINE送付済みとして記録されています。重複登録しません。");
-        injectCommandPanel();
+      if (hasLineSentToday(detail) || hasLineLpActivityToday(detail)) {
+        toast("本日はすでにLINE・LP送付の活動が記録されています。重複登録しません。");
+        await updateCommandStatus(id);
         return;
       }
 
@@ -309,23 +456,11 @@
     if (!root || root.dataset.prospectId !== id) return;
     try {
       const [detail, queue] = await Promise.all([fetchDetail(id), fetchTodayQueue()]);
-      const active = activeQueueFor(queue, id);
-      const sent = hasLineSentToday(detail);
-      const next = (detail.nextActions || [])
-        .filter(a => ["pending", "snoozed"].includes(String(a?.status || "")))
-        .sort((a,b) => String(a.due_date || "").localeCompare(String(b.due_date || "")))[0];
-
-      const q = root.querySelector("[data-sales65-status-queue]");
-      const a = root.querySelector("[data-sales65-status-activity]");
-      if (q) q.textContent = active ? "今日の営業に登録済み" : "今日の営業は未登録";
-      if (a) {
-        a.textContent = sent
-          ? "本日 LINEでLP送付済み"
-          : next
-            ? `${fmtDate(next.due_date)} ${next.description || "次回確認"}`
-            : "次回予定なし";
-      }
-    } catch {}
+      const queueItem = todayQueueFor(queue, id);
+      applyActionState(root, { detail, queueItem });
+    } catch (e) {
+      console.warn("[V65.1] status update failed:", e);
+    }
   }
 
   function injectCommandPanel() {
@@ -358,7 +493,7 @@
       root.innerHTML = `
         <div class="sales65-title">
           <h4>本番営業クイック操作</h4>
-          <span>V65</span>
+          <span>V65.1</span>
         </div>
         <p class="sales65-lead">店舗詳細から、素材確認・今日の営業・送付記録・フォローまで進めます。</p>
         <div class="sales65-status">
@@ -369,7 +504,7 @@
           <button type="button" class="btn btn-outline" data-sales65-open-lp ${lp ? "" : "disabled"}>提案LPを開く</button>
           ${phone
             ? `<a class="btn btn-outline" href="${esc(phone)}">電話する</a>`
-            : `<button type="button" class="btn btn-outline" disabled>電話番号なし</button>`}
+            : `<button type="button" class="btn btn-outline" disabled>電話番号未取得</button>`}
           <button type="button" class="btn btn-outline" data-sales65-queue="${esc(prospectId)}">今日の営業へ追加</button>
           <button type="button" class="btn btn-outline" data-sales65-result="${esc(prospectId)}">結果を記録</button>
           <button type="button" class="btn sales65-line-sent sales65-primary" data-sales65-line-sent="${esc(prospectId)}">LINEでLP送付済み</button>

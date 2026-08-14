@@ -1,0 +1,38 @@
+DPRO SALESNAVI V65.1 TEST REPORT
+===================================
+Version: SALESNAVI-65.1-ACTIVITY-AWARE-20260814
+Date: 2026-08-14
+
+BASE:
+Deployed V65 / V64-R1 / V63 / V61
+
+TARGET:
+本日の活動履歴をクイック操作UIへ反映する。
+
+EXPECTED ALI'I MILI:
+今日の営業 = 本日営業済み｜LINE・LP送付
+LINEボタン = ✓ 本日LINE・LP送付済み (disabled)
+今日の営業へ追加 = 本日の営業は完了 (disabled)
+次の行動 = 8/17(月) LINE送付LPの反応・返信確認
+電話番号が取得できていない場合 = 電話番号未取得
+
+IMPORTANT:
+既存の営業履歴・フォロー予定のDB値は変更しません。
+V65.1は現在の記録を読み取り、操作画面を分かりやすくするUI改善です。
+Cloudflare Worker変更なし / Supabase SQL変更なし。
+
+RESULTS:
+version_65_1: PASS
+today_activity_reader: PASS
+line_lp_detection: PASS
+activity_aware_status: PASS
+line_done_disabled: PASS
+queue_done_disabled: PASS
+next_action_improved: PASS
+phone_wording: PASS
+v61_preserved: PASS
+v63_preserved: PASS
+v64r1_preserved: PASS
+cache_buster_651: PASS
+sales65-quick-sales.js syntax: PASS
+config.js syntax: PASS

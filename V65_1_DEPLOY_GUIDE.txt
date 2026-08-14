@@ -1,0 +1,73 @@
+DPRO SALESNAVI V65.1 GitHub反映手順
+===================================
+
+VERSION:
+SALESNAVI-65.1-ACTIVITY-AWARE-20260814
+
+今回の目的:
+V65のクイック操作を「本日の実際の活動履歴」に連動させます。
+
+主な修正:
+1. 本日の活動履歴を読み取り、クイック操作の状態を自動切替
+2. 本日LINE+LP送付済みなら
+   「本日営業済み｜LINE・LP送付」
+   「✓ 本日LINE・LP送付済み」
+   と表示
+3. 送付済みボタンを無効化し、二重操作を見た目でも防止
+4. 本日の営業が完了済みなら
+   「今日の営業へ追加」を「本日の営業は完了」に切替・無効化
+5. LINE+LP送付後の汎用的な
+   「次回の確認・連絡を行う。」
+   は画面上で
+   「LINE送付LPの反応・返信確認」
+   と分かりやすく表示
+6. 「電話番号なし」→「電話番号未取得」
+
+【Cloudflare / Supabase】
+変更なし。
+V64 Workerをそのまま使います。
+SQL実行不要です。
+
+【ZIP内の6ファイル】
+1. config.js
+2. config.txt
+3. sales65-quick-sales.js
+4. sales65-quick-sales.txt
+5. V65_1_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_1-TEST-REPORT.txt
+
+【GitHubアップロード先】
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+【反映手順】
+1. DPRO_SALESNAVI_65_1_ACTIVITY_AWARE_GITHUB.zip を解凍
+2. 中の6ファイルを全部選択
+3. 上記GitHub URLを開く
+4. 6ファイルをリポジトリ直下へドラッグ＆ドロップ
+5. Commit changes
+6. 営業ナビを開く
+7. Ctrl + Shift + R で強制再読込
+
+【Ali’i Mili確認】
+営業パイプライン
+→ Ali’i Mili
+→ 詳細
+
+期待表示:
+今日の営業:
+「本日営業済み｜LINE・LP送付」
+
+次の行動:
+「8/17(月) LINE送付LPの反応・返信確認」
+（既存データが汎用文言の場合も画面上で分かりやすく表示）
+
+緑ボタン:
+「✓ 本日LINE・LP送付済み」
+→ 無効化
+
+今日の営業へ追加:
+「本日の営業は完了」
+→ 無効化
+
+電話番号が未取得なら:
+「電話番号未取得」
