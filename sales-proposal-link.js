@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-55 — CENTRAL RANKING FIX / 2026-08-14
+/* DPRO SALESNAVI-56 — TOP5 LAYOUT FIX / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-55-CENTRAL-RANKING-FIX-20260814";
+  const VERSION = "SALESNAVI-56-TOP5-LAYOUT-FIX-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -107,6 +107,29 @@
       .dpro55-added{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
       .dpro55-panel-note{margin:7px 0 10px;padding:9px 11px;border:1px solid #cfe7dc;border-radius:11px;background:#f5fcf9;color:#45685c;font-size:10px;line-height:1.6}
       .dpro55-panel-note b{color:#087553}
+      /* V56: sales23-top is a 2-column grid.
+         V55 inserted the note before #sales23PriorityList, making the list
+         auto-flow into the 220px left column. Pin each child explicitly. */
+      .sales23-top>.sales23-scorebox{grid-column:1;grid-row:1}
+      .sales23-top>.dpro55-panel-note{grid-column:2;grid-row:1;margin:0;min-width:0;align-self:stretch;display:flex;align-items:center}
+      .sales23-top>#sales23PriorityList{grid-column:1/-1;grid-row:2;width:100%;min-width:0}
+      #sales23PriorityList.sales23-list{width:100%;min-width:0}
+      #sales23PriorityList .dpro55-top5-item{width:100%;min-width:0;grid-template-columns:38px minmax(260px,1fr) minmax(420px,auto)}
+      #sales23PriorityList .dpro55-top5-main{min-width:0}
+      #sales23PriorityList .dpro55-top5-main h4,
+      #sales23PriorityList .dpro55-top5-main p{word-break:normal;overflow-wrap:anywhere}
+      #sales23PriorityList .dpro55-top5-actions{min-width:0;max-width:none;justify-content:flex-end;flex-wrap:wrap}
+      #sales23PriorityList .dpro55-top5-actions .btn,
+      #sales23PriorityList .dpro55-top5-actions a{white-space:nowrap;word-break:keep-all}
+      @media(max-width:1180px){
+        #sales23PriorityList .dpro55-top5-item{grid-template-columns:34px minmax(0,1fr)}
+        #sales23PriorityList .dpro55-top5-actions{grid-column:2;justify-content:flex-start}
+      }
+      @media(max-width:900px){
+        .sales23-top>.sales23-scorebox{grid-column:1;grid-row:auto}
+        .sales23-top>.dpro55-panel-note{grid-column:1;grid-row:auto;margin:0}
+        .sales23-top>#sales23PriorityList{grid-column:1;grid-row:auto}
+      }
       @media(max-width:900px){.dpro55-top5-item{grid-template-columns:34px minmax(0,1fr)}.dpro55-top5-actions{grid-column:2;justify-content:flex-start;max-width:none}}
       @media(max-width:760px){#dpro51Overlay{padding:0;align-items:flex-end}#dpro51Panel{width:100%;max-height:92dvh;border-radius:22px 22px 0 0}.dpro51-resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dpro51-list{grid-template-columns:1fr}.dpro51-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
@@ -1221,6 +1244,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-55 central ranking unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-56 TOP5 layout unavailable:", centralError);
   });
 })();

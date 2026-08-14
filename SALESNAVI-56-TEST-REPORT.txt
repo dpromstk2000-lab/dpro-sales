@@ -1,0 +1,35 @@
+DPRO SALESNAVI-56 TOP5 LAYOUT FIX
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+ISSUE CONFIRMED:
+V55 ranking worked (TOP5 = 5), but the TOP5 cards were squeezed into the left 220px column.
+
+ROOT CAUSE:
+owner.html has:
+  .sales23-top { grid-template-columns:220px 1fr }
+V55 inserted .dpro55-panel-note before #sales23PriorityList.
+That made CSS Grid auto-placement become:
+  row1 col1 = score box
+  row1 col2 = V55 note
+  row2 col1 = TOP5 list
+Therefore TOP5 list was constrained to 220px.
+
+V56 FIX:
+- Explicitly pins:
+  score box -> row1 col1
+  central-material note -> row1 col2
+  TOP5 list -> row2, full width across both columns
+- TOP5 cards use full available width.
+- Buttons remain horizontal / non-breaking on desktop.
+- At narrower widths actions move to a second row.
+- Under 900px it returns to a single-column layout.
+- No ranking, queue, API, prospect, material, or record logic changed.
+- V55 central ranking logic remains intact.
+- Green S favicon and 50-system material library remain.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.
