@@ -1,0 +1,39 @@
+DPRO SALESNAVI-59 TOP5 MATERIAL DECOUPLE
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+V58 RESULT:
+- Store-name based false matching stayed blocked.
+- But TOP5 remained 0 because the ranking eligibility still required
+  central material mapping.
+
+V59 FIX:
+1. TOP5 ranking and material resolution are fully separated.
+2. TOP5 eligibility uses the visible SalesNavi candidate:
+   - safe sales entry
+   - not restricted
+   - existing 今日優先 score
+3. Central product/material mapping is NOT required to appear in TOP5.
+4. TOP5 can therefore return the best 5 visible eligible candidates.
+5. Material buttons are displayed only if the official SalesNavi product
+   safely maps to the central 50-system catalog.
+6. If mapping fails, V59 displays "素材確認" and does NOT guess from the
+   business/store name.
+7. Adding a candidate to today's queue no longer requires central-material
+   mapping. Existing queue / claim / due-follow-up safety checks remain.
+8. Official product label remains visible in TOP5.
+9. V55 ranking base, V56 full-width layout, green S favicon, and central
+   material library remain.
+
+EXPECTED:
+- 今日おすすめTOP5 = 5 (when 5+ safe visible candidates exist)
+- Wrong SALON flyer must never be shown merely because a store name
+  contains "Salon".
+- If Dog Salon Liebe maps to PETSALON, show PETSALON materials.
+- If not safely mapped, show 素材確認 instead of a wrong link.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.

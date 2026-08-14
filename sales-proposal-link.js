@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-58 — OFFICIAL PRODUCT DIRECT / 2026-08-14
+/* DPRO SALESNAVI-59 — TOP5 MATERIAL DECOUPLE / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-58-OFFICIAL-PRODUCT-DIRECT-20260814";
+  const VERSION = "SALESNAVI-59-TOP5-MATERIAL-DECOUPLE-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -131,6 +131,8 @@
       .dpro57-mismatch{display:inline-flex;align-items:center;border:1px solid #efcf89;background:#fff6e4;color:#865600;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:850}
       .dpro58-official-product{display:inline-flex;align-items:center;border:1px solid #9fd9c4;background:#f1fbf7;color:#087553;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:900}
       .dpro58-official-product:before{content:"正式商品";font-size:8px;opacity:.7;margin-right:4px}
+      .dpro59-material-check{display:inline-flex;align-items:center;justify-content:center;border:1px solid #efcf89;background:#fff6e4;color:#865600;border-radius:9px;padding:8px 10px;font-size:10px;font-weight:850;white-space:nowrap}
+      .dpro59-rank-source{display:inline-flex;align-items:center;border:1px solid #c7d9e8;background:#f3f7fb;color:#42617d;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:850}
       @media(max-width:900px){
         .sales23-top>.sales23-scorebox{grid-column:1;grid-row:auto}
         .sales23-top>.dpro55-panel-note{grid-column:1;grid-row:auto;margin:0}
@@ -723,6 +725,25 @@
   }
 
 
+
+  function dpro59MarkUnmappedCandidates(){
+    document.querySelectorAll(".sales16-candidate").forEach(card=>{
+      if(card.querySelector("[data-dpro59-map-status]"))return;
+      const assigned=dpro57AssignedProduct(card);
+      if(!assigned?.label)return;
+      if(assigned.system)return;
+
+      const actions=card.querySelector(".sales16-actions");
+      if(!actions)return;
+      const span=document.createElement("span");
+      span.className="dpro59-material-check";
+      span.setAttribute("data-dpro59-map-status","1");
+      span.textContent=`素材確認：${assigned.label}`;
+      actions.appendChild(span);
+    });
+  }
+
+
   function dpro54OpenQueueView(){
     const nav = document.querySelector('.nav-btn[data-view="queue"]');
     if (nav) nav.click();
@@ -1070,7 +1091,10 @@
     const label=dpro58OfficialProductLabel(card);
     if(!label)return null;
     const system=dpro58SystemFromOfficialProduct(label);
-    return system?{label,system}:null;
+    // V59: keep the SalesNavi official product label even when the
+    // central catalog mapping is not available. Ranking must not depend
+    // on material mapping.
+    return {label,system:system||null};
   }
 
 
@@ -1092,7 +1116,9 @@
     const central=dpro55CentralCount(system);
     const boost=Math.max(0,dpro55MaterialPoints(central)-dpro55MaterialPoints(nativeMat));
     const score=Math.max(0,Math.min(100,nativeScore+boost));
-    const safeForTop=Boolean(system)&&!restricted&&!noEntry;
+    // V59: ranking and material resolution are separated.
+    // A candidate can be ranked even if central material mapping is unavailable.
+    const safeForTop=!restricted&&!noEntry;
     return {card,id,name,address,product,best,restricted,noEntry,system,nativeScore,nativeMat,central,boost,score,index,safeForTop}
   }
 
@@ -1113,6 +1139,7 @@
   function dpro55Reason(info){
     const tags=[];
     if(info.best)tags.push({text:`入口 ${info.best}`,cls:""});
+    tags.push({text:`既存優先 ${info.nativeScore}`,cls:""});
     if(info.central>=3)tags.push({text:"中央素材3点",cls:"central"});
     else if(info.central>0)tags.push({text:`中央素材${info.central}点`,cls:"central"});
     if(info.boost>0)tags.push({text:`素材連携 +${info.boost}`,cls:"central"});
@@ -1122,20 +1149,25 @@
 
   function dpro55TopItemHtml(info,rank){
     const queued=dpro55State.queueIds.has(info.id);
-    const best=recommend(info.system,info.card?.textContent||"");
+    const best=info.system?recommend(info.system,info.card?.textContent||""):null;
     const tags=dpro55Reason(info).map(x=>`<span class="dpro55-top5-tag ${esc(x.cls)}">${esc(x.text)}</span>`).join("");
+    const codeHtml=info.system
+      ?`<span class="dpro57-product-code">${esc(info.system.code||"")}</span>`
+      :`<span class="dpro57-mismatch">中央素材は要確認</span>`;
+    const materialHtml=best?.url
+      ?`<a class="btn btn-outline btn-sm dpro53-next-material" href="${esc(best.url)}" target="_blank" rel="noopener" title="${esc((info.system?.code||"")+" / "+(best.why||""))}">次に見せる：${esc(best.label)}</a>`
+      :`<span class="dpro59-material-check">素材確認</span>`;
     return `<article class="dpro55-top5-item" data-dpro55-id="${esc(info.id)}">
       <div class="dpro55-top5-rank">${rank}</div>
       <div class="dpro55-top5-main">
         <h4>${esc(info.name)}</h4>
-        <p><span class="dpro58-official-product">${esc(info.product)}</span> <span class="dpro57-product-code">${esc(info.system?.code||"")}</span>${info.address?` ／ ${esc(info.address)}`:""}</p>
-        <div class="dpro55-top5-tags">${tags}<span class="dpro55-top5-source">商品サイト素材連携</span></div>
+        <p><span class="dpro58-official-product">${esc(info.product)}</span> ${codeHtml}${info.address?` ／ ${esc(info.address)}`:""}</p>
+        <div class="dpro55-top5-tags">${tags}<span class="dpro59-rank-source">TOP5判定と素材判定を分離</span></div>
       </div>
       <div class="dpro55-top5-actions">
-        <span class="dpro55-top5-score">V55優先 ${info.score}</span>
+        <span class="dpro55-top5-score">V59優先 ${info.score}</span>
         <button type="button" class="btn btn-sm ${queued?"btn-outline dpro55-added":"btn-primary dpro55-add"}" ${queued?'data-dpro55-open-queue="1"':`data-dpro55-queue-add="${esc(info.id)}"`}>${queued?"今日の営業を見る":"今日の営業へ追加"}</button>
-        <span class="dpro57-product-code">${esc(info.system?.code||"")}</span>
-        ${best?.url?`<a class="btn btn-outline btn-sm dpro53-next-material" href="${esc(best.url)}" target="_blank" rel="noopener" title="${esc((info.system?.code||"")+" / "+(best.why||""))}">次に見せる：${esc(best.label)}</a>`:""}
+        ${materialHtml}
         <button type="button" class="btn btn-outline btn-sm" data-prospect="${esc(info.id)}">詳細・営業実行</button>
       </div>
     </article>`
@@ -1166,9 +1198,9 @@
       list.before(note);
     }
     const sourceCount=ranked.length;
-    note.innerHTML=`<b>V55中央連携：</b>SalesNavi本体の正式割当商品を直接読み取り、商品サイト素材へ接続できる候補 ${sourceCount}件から上位${top.length}件を表示しています。`;
+    note.innerHTML=`<b>V55中央連携：</b>V59ではTOP5判定と素材判定を分離しています。営業入口・既存優先スコアで候補 ${sourceCount}件から上位${top.length}件を表示し、素材は正式商品を中央マスターへ安全に紐付けできた場合だけ表示します。`;
 
-    const sig=top.map(x=>`${x.id}:${x.score}:${dpro55State.queueIds.has(x.id)?1:0}`).join("|");
+    const sig=top.map(x=>`${x.id}:${x.score}:${x.product}:${x.system?.code||"NO-MAP"}:${dpro55State.queueIds.has(x.id)?1:0}`).join("|");
     if(list.dataset.dpro55Signature!==sig){
       list.dataset.dpro55Signature=sig;
       list.innerHTML=top.length
@@ -1232,7 +1264,6 @@
     unique.forEach(id=>{
       const x=dpro55CandidateById(id);
       if(!x){blocked.push({id,reason:"候補情報なし"});return}
-      if(!x.system){blocked.push({id,reason:"DPRO商品未設定"});return}
       if(x.restricted){blocked.push({id,reason:"営業利用注意"});return}
       if(x.noEntry){blocked.push({id,reason:"営業入口なし"});return}
       if(dpro55State.queueIds.has(id)){blocked.push({id,reason:"本日キュー済み"});return}
@@ -1375,6 +1406,7 @@
     dpro54OrganizeCandidateList();
     dpro54UpdateCandidatePrimaryActions();
     dpro55Apply();
+    dpro59MarkUnmappedCandidates();
     enhanceMaterialRows();
     addDesktopNav();
     addTopShortcut();
@@ -1403,6 +1435,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-58 official-product direct unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-59 TOP5/material decouple unavailable:", centralError);
   });
 })();
