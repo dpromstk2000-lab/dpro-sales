@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-60 — OFFICIAL PRODUCT CENTRAL MATERIAL / 2026-08-14
+/* DPRO SALESNAVI-61 — TOP5 RERENDER LOCK / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-60-OFFICIAL-PRODUCT-CENTRAL-MATERIAL-20260814";
+  const VERSION = "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -1328,7 +1328,21 @@
     note.innerHTML=`<b>V55中央連携：</b>V59ではTOP5判定と素材判定を分離しています。営業入口・既存優先スコアで候補 ${sourceCount}件から上位${top.length}件を表示し、素材は正式商品を中央マスターへ安全に紐付けできた場合だけ表示します。`;
 
     const sig=top.map(x=>`${x.id}:${x.score}:${x.product}:${x.system?.code||"NO-MAP"}:${dpro55State.queueIds.has(x.id)?1:0}`).join("|");
-    if(list.dataset.dpro55Signature!==sig){
+
+    // V61:
+    // SalesNavi native renderSales23() may replace list.innerHTML while leaving
+    // the list element itself (and therefore data-dpro55-signature) intact.
+    // In V60 this caused "TOP5 count = 5, cards = blank":
+    // signature matched -> rebuild skipped -> empty native list remained.
+    //
+    // Rebuild not only when the signature changes, but also whenever the
+    // expected V59/V60 TOP5 DOM is missing, incomplete, or out of order.
+    const current=[...list.querySelectorAll(":scope > .dpro55-top5-item")];
+    const domValid=top.length
+      ? current.length===top.length && current.every((el,i)=>String(el.dataset.dpro55Id||"")===String(top[i].id||""))
+      : Boolean(list.querySelector(":scope > .sales23-empty"));
+
+    if(list.dataset.dpro55Signature!==sig || !domValid){
       list.dataset.dpro55Signature=sig;
       list.innerHTML=top.length
         ?top.map((x,i)=>dpro55TopItemHtml(x,i+1)).join("")
@@ -1480,6 +1494,21 @@
     dpro55RefreshContext(false);
   }
 
+
+  function dpro61BindTop5Recovery(){
+    const list=document.querySelector("#sales23PriorityList");
+    if(!list || list.dataset.dpro61Observer==="1")return;
+    list.dataset.dpro61Observer="1";
+
+    const observer=new MutationObserver(()=>{
+      // Native SalesNavi may repaint this container after drawer close,
+      // refresh, queue updates, or candidate re-render. Re-run our renderer.
+      schedule();
+    });
+    observer.observe(list,{childList:true,subtree:false});
+  }
+
+
   function addIndexCard(){
     const grid = document.querySelector("body .grid");
     if (!grid || grid.querySelector(`[${LIB_MARK}]`)) return;
@@ -1538,6 +1567,7 @@
     dpro54OrganizeCandidateList();
     dpro54UpdateCandidatePrimaryActions();
     dpro55Apply();
+    dpro61BindTop5Recovery();
     dpro59MarkUnmappedCandidates();
     enhanceMaterialRows();
     addDesktopNav();
@@ -1567,6 +1597,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-60 official-product central-material unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-61 TOP5 rerender lock unavailable:", centralError);
   });
 })();

@@ -1,0 +1,40 @@
+DPRO SALESNAVI-61 TOP5 RERENDER LOCK
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+CONFIRMED REAL-SCREEN ISSUE AFTER V60:
+- 今日おすすめTOP5 count remained 5
+- Dog Salon Liebe still existed in the normal candidate list
+- But the 5 TOP5 cards became blank after a subsequent native re-render
+
+ROOT CAUSE:
+V59/V60 stored data-dpro55-signature on #sales23PriorityList.
+SalesNavi native renderSales23() can replace that element's innerHTML
+without replacing the element itself.
+Therefore the old signature remained.
+The enhancement saw "same signature" and skipped rebuilding even though
+the TOP5 card DOM had been erased.
+
+V61 FIX:
+1. TOP5 rendering now validates the actual DOM:
+   - expected number of cards
+   - expected prospect IDs
+   - expected order
+2. If the DOM is missing/incomplete/out-of-order, TOP5 is rebuilt even if
+   the data signature is unchanged.
+3. Adds a lightweight MutationObserver specifically to
+   #sales23PriorityList and reuses the existing requestAnimationFrame
+   schedule/debounce.
+4. Native refresh / drawer close / queue refresh can no longer leave:
+   "TOP5 count 5 + blank card area".
+5. No prospect data, ranking data, queue data, or activity records are deleted.
+6. V60 official product -> central materials remains:
+   DPRO ペットサロン LINE -> PETSALON -> correct pet-salon materials.
+7. Login-before-API guard remains.
+8. Green S favicon and central material library remain.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag into repository root -> Commit changes.
