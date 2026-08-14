@@ -1,4 +1,4 @@
-/* DPRO SALESNAVI-54 — TODAY TOP5 / 2026-08-14
+/* DPRO SALESNAVI-55 — CENTRAL RANKING FIX / 2026-08-14
  * 50-system product-site master -> SalesNavi quick materials.
  * Existing SalesNavi business logic/API mutations are not changed.
  */
@@ -9,7 +9,7 @@
   const PRODUCT_BASE = "https://dpromstk2000-lab.github.io/dpro-line-systems-site/";
   const CENTRAL_DATA = PRODUCT_BASE + "systems-data.js?v=20260814";
   const HUB = cfg.proposalHubUrl || (PRODUCT_BASE + "proposal.html");
-  const VERSION = "SALESNAVI-54-TODAY-TOP5-20260814";
+  const VERSION = "SALESNAVI-55-CENTRAL-RANKING-FIX-20260814";
   const MARK = "data-dpro51-materials";
   const LIB_MARK = "data-dpro51-library-link";
 
@@ -94,6 +94,20 @@
       .dpro54-open-queue{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
       .dpro54-batch{background:#0e8d67!important;border-color:#0e8d67!important;color:#fff!important}
       .dpro54-compact-reasons .sales118-reason:nth-child(n+5){display:none!important}
+      .dpro55-top5-source{display:inline-flex;align-items:center;gap:5px;background:#e8f6f1;color:#087553;border:1px solid #bfe1d3;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:900}
+      .dpro55-top5-item{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;padding:13px 14px;border:1px solid #dce7e1;border-radius:14px;background:#fff;margin-bottom:8px}
+      .dpro55-top5-item:first-child{border-color:#87cfb4;box-shadow:0 8px 22px rgba(14,141,103,.08)}
+      .dpro55-top5-rank{width:32px;height:32px;border-radius:10px;background:#e8f6f1;color:#087553;display:grid;place-items:center;font-size:13px;font-weight:900}
+      .dpro55-top5-item:first-child .dpro55-top5-rank{background:#0e8d67;color:#fff}
+      .dpro55-top5-main{min-width:0}.dpro55-top5-main h4{margin:0 0 4px;font-size:13px}.dpro55-top5-main p{margin:0;color:#68788c;font-size:10px;line-height:1.55}
+      .dpro55-top5-tags{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.dpro55-top5-tag{display:inline-flex;border-radius:999px;padding:4px 7px;background:#f2f6f8;color:#536579;font-size:9px;font-weight:750}.dpro55-top5-tag.central{background:#eaf8f2;color:#087553}.dpro55-top5-tag.warn{background:#fff5df;color:#8a5a05}
+      .dpro55-top5-actions{display:flex;gap:6px;align-items:center;justify-content:flex-end;flex-wrap:wrap;max-width:470px}
+      .dpro55-top5-score{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:6px 9px;background:#eef6ff;color:#1765ad;font-size:10px;font-weight:900;white-space:nowrap}
+      .dpro55-add{background:#0e8d67!important;border-color:#0e8d67!important;color:#fff!important}
+      .dpro55-added{border-color:#9fd9c4!important;background:#f2fbf7!important;color:#087553!important}
+      .dpro55-panel-note{margin:7px 0 10px;padding:9px 11px;border:1px solid #cfe7dc;border-radius:11px;background:#f5fcf9;color:#45685c;font-size:10px;line-height:1.6}
+      .dpro55-panel-note b{color:#087553}
+      @media(max-width:900px){.dpro55-top5-item{grid-template-columns:34px minmax(0,1fr)}.dpro55-top5-actions{grid-column:2;justify-content:flex-start;max-width:none}}
       @media(max-width:760px){#dpro51Overlay{padding:0;align-items:flex-end}#dpro51Panel{width:100%;max-height:92dvh;border-radius:22px 22px 0 0}.dpro51-resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.dpro51-list{grid-template-columns:1fr}.dpro51-sync-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
     `;
     document.head.appendChild(style);
@@ -788,6 +802,340 @@
     });
   }
 
+
+  const dpro55State = {
+    queueIds:new Set(),
+    claimedIds:new Set(),
+    followIds:new Set(),
+    lastContextAt:0,
+    contextLoading:false,
+    bound:false,
+    lastTopIds:[]
+  };
+
+  function dpro55Today(){
+    const d=new Date(),pad=n=>String(n).padStart(2,"0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  }
+
+  function dpro55Token(){
+    try{
+      const x=JSON.parse(localStorage.getItem(cfg.sessionStorageKey)||"null");
+      return x?.token||"";
+    }catch(_){return ""}
+  }
+
+  async function dpro55Api(path,{method="GET",body=null}={}){
+    const headers={Accept:"application/json"};
+    if(body!==null)headers["Content-Type"]="application/json; charset=utf-8";
+    const token=dpro55Token();
+    if(token)headers.Authorization=`Bearer ${token}`;
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    let res;
+    try{
+      res=await fetch(String(cfg.apiBaseUrl||"")+path,{
+        method,
+        headers,
+        body:body===null?undefined:JSON.stringify(body),
+        cache:"no-store",
+        credentials:"omit",
+        signal:controller.signal
+      });
+    }finally{clearTimeout(timer)}
+    let data={};try{data=await res.json()}catch(_){}
+    if(!res.ok||data.ok===false)throw new Error(data.message||data.error||`APIエラー (${res.status})`);
+    return data;
+  }
+
+  function dpro55ActiveQueue(q){return !["completed","skipped","cancelled"].includes(String(q?.queue_status||"queued"))}
+
+  async function dpro55RefreshContext(force=false){
+    if(dpro55State.contextLoading)return;
+    if(!force&&Date.now()-dpro55State.lastContextAt<30000)return;
+    dpro55State.contextLoading=true;
+    try{
+      const date=dpro55Today();
+      const [qd,dd]=await Promise.all([
+        dpro55Api(`/api/sales-queue?date=${date}`),
+        dpro55Api(`/api/dashboard/today?date=${date}`)
+      ]);
+      const queue=Array.isArray(qd?.queueItems)?qd.queueItems:[];
+      dpro55State.queueIds=new Set(queue.filter(dpro55ActiveQueue).map(q=>q.prospect_id).filter(Boolean));
+      dpro55State.claimedIds=new Set(queue.filter(q=>dpro55ActiveQueue(q)&&q.claimActive).map(q=>q.prospect_id).filter(Boolean));
+      const followIds=new Set();
+      [...(Array.isArray(dd?.overdue)?dd.overdue:[]),...(Array.isArray(dd?.dueToday)?dd.dueToday:[])].forEach(a=>{
+        const id=a?.prospect_id||a?.prospect?.id;if(id)followIds.add(id)
+      });
+      dpro55State.followIds=followIds;
+      dpro55State.lastContextAt=Date.now();
+      schedule();
+    }catch(e){
+      console.warn("DPRO SALESNAVI-55 queue context:",e);
+    }finally{dpro55State.contextLoading=false}
+  }
+
+  function dpro55NativeScore(card){
+    const m=String(card?.textContent||"").match(/今日優先\s*(\d+)/);
+    return m?Number(m[1]):0
+  }
+
+  function dpro55NativeMaterialCount(card){
+    const t=String(card?.textContent||"");
+    if(/素材3点完備/.test(t))return 3;
+    const m=t.match(/素材([0-3])点/);
+    return m?Number(m[1]):0
+  }
+
+  function dpro55MaterialPoints(n){return [0,6,10,15][Math.max(0,Math.min(3,Number(n)||0))]||0}
+
+  function dpro55CentralCount(system){
+    if(!system)return 0;
+    const r=resourceSet(system);
+    return [r.lp?.url,r.flyer?.url,r.demo?.url].filter(Boolean).length
+  }
+
+  function dpro55CandidateInfo(card,index=0){
+    if(!card)return null;
+    const id=prospectIdFromCandidate(card);
+    if(!id)return null;
+    const system=matchSystem(card);
+    const t=String(card.textContent||"");
+    const name=String(card.querySelector("h3")?.textContent||"営業先").trim();
+    const address=String(card.querySelector(".sales16-candidate-top p")?.textContent||"").trim();
+    const product=[...card.querySelectorAll(".sales16-tags .badge")].map(x=>String(x.textContent||"").trim()).find(x=>x&&!/^(A|B|C)$/.test(x)&&!/今日優先|おすすめ|営業利用|素材|HP|LINE|Instagram|問い合わせ|電話|未確認|準備/.test(x))||system?.name||"商品";
+    const best=String(card.querySelector(".sales16-opportunity")?.textContent||"").replace(/^おすすめ[：:]\s*/,"").trim();
+    const restricted=/営業利用注意|要利用条件確認/.test(t);
+    const noEntry=/営業入口の確認待ち|営業入口 未確認/.test(t)||!best;
+    const nativeScore=dpro55NativeScore(card);
+    const nativeMat=dpro55NativeMaterialCount(card);
+    const central=dpro55CentralCount(system);
+    const boost=Math.max(0,dpro55MaterialPoints(central)-dpro55MaterialPoints(nativeMat));
+    const score=Math.max(0,Math.min(100,nativeScore+boost));
+    const safeForTop=Boolean(system)&&!restricted&&!noEntry;
+    return {card,id,name,address,product,best,restricted,noEntry,system,nativeScore,nativeMat,central,boost,score,index,safeForTop}
+  }
+
+  function dpro55AllCandidates(){
+    const root=document.querySelector("#sales16CandidateList");
+    if(!root)return [];
+    return [...root.querySelectorAll(".sales16-candidate")].map(dpro55CandidateInfo).filter(Boolean)
+  }
+
+  function dpro55Ranked(){
+    return dpro55AllCandidates()
+      .filter(x=>x.safeForTop)
+      .sort((a,b)=>b.score-a.score||b.central-a.central||a.index-b.index)
+  }
+
+  function dpro55Top5(){return dpro55Ranked().slice(0,5)}
+
+  function dpro55Reason(info){
+    const tags=[];
+    if(info.best)tags.push({text:`入口 ${info.best}`,cls:""});
+    if(info.central>=3)tags.push({text:"中央素材3点",cls:"central"});
+    else if(info.central>0)tags.push({text:`中央素材${info.central}点`,cls:"central"});
+    if(info.boost>0)tags.push({text:`素材連携 +${info.boost}`,cls:"central"});
+    if(info.nativeScore<35&&info.score>=35)tags.push({text:"中央素材で優先基準到達",cls:"central"});
+    return tags;
+  }
+
+  function dpro55TopItemHtml(info,rank){
+    const queued=dpro55State.queueIds.has(info.id);
+    const best=recommend(info.system,info.card?.textContent||"");
+    const tags=dpro55Reason(info).map(x=>`<span class="dpro55-top5-tag ${esc(x.cls)}">${esc(x.text)}</span>`).join("");
+    return `<article class="dpro55-top5-item" data-dpro55-id="${esc(info.id)}">
+      <div class="dpro55-top5-rank">${rank}</div>
+      <div class="dpro55-top5-main">
+        <h4>${esc(info.name)}</h4>
+        <p>${esc(info.product)}${info.address?` ／ ${esc(info.address)}`:""}</p>
+        <div class="dpro55-top5-tags">${tags}<span class="dpro55-top5-source">商品サイト素材連携</span></div>
+      </div>
+      <div class="dpro55-top5-actions">
+        <span class="dpro55-top5-score">V55優先 ${info.score}</span>
+        <button type="button" class="btn btn-sm ${queued?"btn-outline dpro55-added":"btn-primary dpro55-add"}" ${queued?'data-dpro55-open-queue="1"':`data-dpro55-queue-add="${esc(info.id)}"`}>${queued?"今日の営業を見る":"今日の営業へ追加"}</button>
+        ${best?.url?`<a class="btn btn-outline btn-sm dpro53-next-material" href="${esc(best.url)}" target="_blank" rel="noopener">次に見せる：${esc(best.label)}</a>`:""}
+        <button type="button" class="btn btn-outline btn-sm" data-prospect="${esc(info.id)}">詳細・営業実行</button>
+      </div>
+    </article>`
+  }
+
+  function dpro55RenderTop5(){
+    const list=document.querySelector("#sales23PriorityList");
+    const panel=list?.closest(".sales23-panel")||list?.parentElement;
+    if(!list||!panel)return;
+
+    const top=dpro55Top5();
+    const ranked=dpro55Ranked();
+    dpro55State.lastTopIds=top.map(x=>x.id);
+
+    const title=panel.querySelector(".panel-head h3");
+    const hint=panel.querySelector(".panel-head .hint");
+    if(title)title.textContent="今日おすすめTOP5";
+    if(hint)hint.textContent="画面に出ている営業候補を、商品サイトの提案LP・A4・DEMOも含めて再評価します。";
+
+    const ready=document.querySelector("#sales23ReadyCount");
+    if(ready)ready.textContent=String(top.length);
+
+    let note=panel.querySelector("[data-dpro55-note]");
+    if(!note){
+      note=document.createElement("div");
+      note.className="dpro55-panel-note";
+      note.setAttribute("data-dpro55-note","1");
+      list.before(note);
+    }
+    const sourceCount=ranked.length;
+    note.innerHTML=`<b>V55中央連携：</b>営業入口が確認でき、DPRO商品サイト素材を使える候補 ${sourceCount}件から上位${top.length}件を表示しています。`;
+
+    const sig=top.map(x=>`${x.id}:${x.score}:${dpro55State.queueIds.has(x.id)?1:0}`).join("|");
+    if(list.dataset.dpro55Signature!==sig){
+      list.dataset.dpro55Signature=sig;
+      list.innerHTML=top.length
+        ?top.map((x,i)=>dpro55TopItemHtml(x,i+1)).join("")
+        :'<div class="sales23-empty">営業入口が確認できる候補を読み込み中です。</div>';
+    }
+
+    const batch=document.querySelector("#sales119QueueTop");
+    if(batch){
+      batch.textContent="TOP5を今日の営業へ一括追加";
+      batch.disabled=!top.some(x=>!dpro55State.queueIds.has(x.id));
+      batch.classList.add("dpro54-batch");
+    }
+
+    const focus=document.querySelector("#sales23Focus");
+    if(focus){
+      focus.disabled=ranked.length===0;
+      focus.textContent="候補一覧を確認";
+    }
+  }
+
+  function dpro55OrganizeRest(){
+    const root=document.querySelector("#sales16CandidateList");
+    if(!root)return;
+    const cards=[...root.querySelectorAll(".sales16-candidate")];
+    if(!cards.length)return;
+    const topIds=new Set(dpro55State.lastTopIds);
+
+    cards.forEach(card=>{
+      const id=prospectIdFromCandidate(card);
+      card.classList.toggle("dpro54-hidden-top-duplicate",Boolean(id&&topIds.has(id)));
+    });
+
+    let details=root.querySelector(":scope > .dpro54-rest");
+    if(!details){
+      details=document.createElement("details");
+      details.className="dpro54-rest";
+      const summary=document.createElement("summary");
+      summary.innerHTML='<span data-dpro54-rest-label>その他の候補</span><span class="dpro54-top-actions-note">必要なときだけ開く</span>';
+      const body=document.createElement("div");
+      body.className="dpro54-rest-body";
+      details.append(summary,body);
+      cards.forEach(card=>body.appendChild(card));
+      root.appendChild(details);
+    }
+    const rest=[...details.querySelectorAll(".sales16-candidate")].filter(card=>!card.classList.contains("dpro54-hidden-top-duplicate"));
+    const label=details.querySelector("[data-dpro54-rest-label]");
+    const txt=`その他の候補 ${rest.length}件を表示`;
+    if(label&&label.textContent!==txt)label.textContent=txt;
+    details.hidden=rest.length===0;
+  }
+
+  function dpro55CandidateById(id){
+    return dpro55AllCandidates().find(x=>x.id===id)||null
+  }
+
+  async function dpro55SafeReady(ids){
+    await dpro55RefreshContext(true);
+    const unique=[...new Set(ids.filter(Boolean))];
+    const ready=[],blocked=[];
+    unique.forEach(id=>{
+      const x=dpro55CandidateById(id);
+      if(!x){blocked.push({id,reason:"候補情報なし"});return}
+      if(!x.system){blocked.push({id,reason:"DPRO商品未設定"});return}
+      if(x.restricted){blocked.push({id,reason:"営業利用注意"});return}
+      if(x.noEntry){blocked.push({id,reason:"営業入口なし"});return}
+      if(dpro55State.queueIds.has(id)){blocked.push({id,reason:"本日キュー済み"});return}
+      if(dpro55State.claimedIds.has(id)){blocked.push({id,reason:"担当確保中"});return}
+      if(dpro55State.followIds.has(id)){blocked.push({id,reason:"期限到来フォローあり"});return}
+      ready.push(x)
+    });
+    return {ready,blocked}
+  }
+
+  async function dpro55Enqueue(ids,label="候補"){
+    let checked;
+    try{checked=await dpro55SafeReady(ids)}
+    catch(e){showMiniToast(e.message||"営業キューを確認できませんでした");return}
+    const {ready,blocked}=checked;
+    if(!ready.length){
+      const reasons=[...new Set(blocked.map(x=>x.reason))].join("・");
+      showMiniToast(`追加できません：${reasons||"対象なし"}`);
+      schedule();
+      return
+    }
+    const names=ready.map(x=>x.name).slice(0,5).join("、");
+    const extra=blocked.length?`\n\n除外 ${blocked.length}件：${[...new Set(blocked.map(x=>x.reason))].join("・")}`:"";
+    if(!confirm(`${label} ${ready.length}件を今日の営業へ追加しますか？\n\n${names}${extra}\n\n本日キュー・担当確保・期限到来フォローは除外します。`))return;
+
+    try{
+      const date=dpro55Today();
+      const d=await dpro55Api("/api/sales-queue/enqueue",{
+        method:"POST",
+        body:{prospectIds:ready.map(x=>x.id),autoSelect:false,queueDate:date,sourceType:"manual",limit:ready.length}
+      });
+      ready.forEach(x=>dpro55State.queueIds.add(x.id));
+      dpro55State.lastContextAt=Date.now();
+      const added=Number(d?.result?.addedCount??d?.result?.added_count??ready.length)||0;
+      const updated=Number(d?.result?.updatedCount??d?.result?.updated_count??0)||0;
+      showMiniToast(`今日の営業へ ${added+updated}件反映しました`);
+      schedule();
+    }catch(e){showMiniToast(e.message||"営業キューへ追加できませんでした")}
+  }
+
+  function dpro55BindActions(){
+    if(dpro55State.bound)return;
+    dpro55State.bound=true;
+
+    document.addEventListener("click",e=>{
+      const batch=e.target.closest("#sales119QueueTop");
+      if(batch){
+        e.preventDefault();e.stopImmediatePropagation();
+        dpro55Enqueue(dpro55Top5().map(x=>x.id),"TOP5");
+        return
+      }
+
+      const add=e.target.closest("[data-dpro55-queue-add]");
+      if(add){
+        e.preventDefault();e.stopImmediatePropagation();
+        dpro55Enqueue([add.dataset.dpro55QueueAdd],"この候補");
+        return
+      }
+
+      const open=e.target.closest("[data-dpro55-open-queue]");
+      if(open){
+        e.preventDefault();e.stopImmediatePropagation();
+        dpro54OpenQueueView();
+        return
+      }
+
+      const legacy=e.target.closest("#sales16CandidateList [data-dpro53-queue-add], #sales16CandidateList [data-sales119-queue]");
+      if(legacy){
+        const card=legacy.closest(".sales16-candidate");
+        const id=legacy.getAttribute("data-sales119-queue")||legacy.dataset.dpro54Prospect||prospectIdFromCandidate(card);
+        if(id){
+          e.preventDefault();e.stopImmediatePropagation();
+          dpro55Enqueue([id],"この候補");
+        }
+      }
+    },true);
+  }
+
+  function dpro55Apply(){
+    dpro55BindActions();
+    dpro55RenderTop5();
+    dpro55OrganizeRest();
+    dpro55RefreshContext(false);
+  }
+
   function addIndexCard(){
     const grid = document.querySelector("body .grid");
     if (!grid || grid.querySelector(`[${LIB_MARK}]`)) return;
@@ -844,6 +1192,7 @@
     dpro54EnhanceTop5Panel();
     dpro54OrganizeCandidateList();
     dpro54UpdateCandidatePrimaryActions();
+    dpro55Apply();
     enhanceMaterialRows();
     addDesktopNav();
     addTopShortcut();
@@ -872,6 +1221,6 @@
     });
   }).catch(err => {
     centralError = String(err?.message || err || "unknown");
-    console.warn("DPRO SALESNAVI-54 TOP5 unavailable:", centralError);
+    console.warn("DPRO SALESNAVI-55 central ranking unavailable:", centralError);
   });
 })();

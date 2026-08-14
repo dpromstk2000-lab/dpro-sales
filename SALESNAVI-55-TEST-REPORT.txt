@@ -1,0 +1,39 @@
+DPRO SALESNAVI-55 CENTRAL RANKING FIX
+DATE: 2026-08-14
+TARGET: dpromstk2000-lab/dpro-sales
+
+FIX:
+V54 showed:
+- おすすめ候補: 20
+- 今日おすすめTOP5: 0
+- その他候補: 23
+
+CAUSE:
+The native TOP5 eligibility score used only the old DB material registration
+(LP / DEMO / proposal). The new product-site central materials were visible
+but did not contribute to the native material score.
+
+V55:
+- Builds TOP5 directly from the actual candidates shown on screen.
+- Re-evaluates them with central product-site materials:
+  proposal LP / A4 flyer / LIVE DEMO.
+- Adds only the missing material-score difference to the existing 今日優先 score.
+- Keeps sales-entry / restricted-use checks.
+- TOP5 always uses the best eligible visible candidates.
+- Hides those TOP5 duplicates from the collapsed "その他の候補".
+- TOP5 actions stay limited to:
+  1) 今日の営業へ追加 / 今日の営業を見る
+  2) 次に見せる資料
+  3) 詳細・営業実行
+- TOP5 batch add uses the existing SalesNavi API endpoint but first performs:
+  current queue / claimed / due-follow-up checks.
+- Candidate-list add buttons use the same V55 safety check, avoiding the old
+  native score rejection caused by central-material undercount.
+- Existing owner/staff data and business records are not changed by display.
+- Green S favicon and 50-system material library remain.
+
+UPLOAD:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+INSTALL:
+Extract ZIP -> select all 5 files -> drag to repository root -> Commit changes.
