@@ -1,0 +1,42 @@
+DPRO SALESNAVI V65.5 TEST REPORT
+===================================
+Version: SALESNAVI-65.5-PET-CARE-CENTRAL-MATERIAL-20260815
+Date: 2026-08-15
+
+OBSERVED:
+- Official product: DPRO PET CARE LINE
+- Proposed system: DPRO PET CARE LINE
+- Central material mapping: unresolved
+- Quick proposal button: disabled/no action
+
+SOURCE CHECK:
+Central catalog system:
+- code: VET
+- name: 動物病院
+- systemPage: systems/pet-care.html
+- lpUrl: lp-vet.html
+- flyerHtml: flyer-vet.html
+- flyerPdf: flyer-vet.pdf
+- assetSlug: vet
+
+ROOT CAUSE:
+V61 resolves official products by exact code/name/target/assetSlug aliases.
+DPRO PET CARE LINE normalizes to PET CARE but VET central aliases do not include PET CARE.
+Therefore the safety lock correctly refused to show materials.
+
+FIX:
+Exact official-label override only:
+DPRO PET CARE LINE -> VET
+No business-name inference.
+
+RESULTS:
+sales655-pet-care-material.js syntax: PASS
+config.js syntax: PASS
+official label guard: PASS
+non-PET label guard: PASS
+VET proposal URL: PASS
+VET flyer URL: PASS
+VET PDF URL: PASS
+VET product page URL: PASS
+no_worker: PASS
+no_sql: PASS

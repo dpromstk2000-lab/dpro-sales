@@ -18,7 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
-  usabilityVersion: "SALESNAVI-65.4-FOLLOWUP-CONTEXT-R2-20260815",
+  usabilityVersion: "SALESNAVI-65.5-PET-CARE-CENTRAL-MATERIAL-20260815",
   timezone: "Asia/Tokyo"
 });
 
@@ -38,7 +38,6 @@ window.DPRO_CONFIG = Object.freeze({
   var path = String(location.pathname || "").toLowerCase();
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
   if (document.querySelector('script[data-sales63-activity-method]')) return;
-
   var s = document.createElement("script");
   s.src = "./sales63-activity-method-handoff.js?v=20260814-63";
   s.async = false;
@@ -53,7 +52,6 @@ window.DPRO_CONFIG = Object.freeze({
   var path = String(location.pathname || "").toLowerCase();
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
   if (document.querySelector('script[data-sales64-direct-queue]')) return;
-
   var s = document.createElement("script");
   s.src = "./sales64-direct-queue.js?v=20260814-64r1";
   s.async = false;
@@ -61,15 +59,13 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.4: legacy follow-up context correction.
-   Replaces V65.3 loader; old V65.3 file may remain in repository but is not loaded. */
+/* V65.4: follow-up context correction */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
   var path = String(location.pathname || "").toLowerCase();
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
   if (document.querySelector('script[data-sales654-followup-context]')) return;
-
   var s = document.createElement("script");
   s.src = "./sales654-followup-context.js?v=20260815-654";
   s.async = false;
@@ -84,7 +80,6 @@ window.DPRO_CONFIG = Object.freeze({
   var path = String(location.pathname || "").toLowerCase();
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
   if (document.querySelector('script[data-sales65-quick-sales]')) return;
-
   var s = document.createElement("script");
   s.src = "./sales65-quick-sales.js?v=20260814-652";
   s.async = false;
@@ -92,28 +87,35 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
+/* V65.5: DPRO PET CARE LINE -> central VET material mapping */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales655-pet-care-material]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales655-pet-care-material.js?v=20260815-655";
+  s.async = false;
+  s.dataset.sales655PetCareMaterial = "1";
+  document.head.appendChild(s);
+})();
+
 /* DPRO SALES NAVI favicon: green S */
 (function(){
   "use strict";
   if (typeof document === "undefined" || !document.head) return;
-
   var svg =
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">' +
-      '<defs>' +
-        '<linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
-          '<stop offset="0%" stop-color="#33c69a"/>' +
-          '<stop offset="100%" stop-color="#0b8060"/>' +
-        '</linearGradient>' +
-      '</defs>' +
+      '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+        '<stop offset="0%" stop-color="#33c69a"/>' +
+        '<stop offset="100%" stop-color="#0b8060"/>' +
+      '</linearGradient></defs>' +
       '<rect width="64" height="64" rx="16" fill="url(#g)"/>' +
       '<text x="32" y="33" text-anchor="middle" dominant-baseline="middle" ' +
         'font-family="Arial,Helvetica,sans-serif" font-size="40" font-weight="700" fill="#ffffff">S</text>' +
     '</svg>';
-
-  document.querySelectorAll('link[rel~="icon"]').forEach(function(el){
-    el.remove();
-  });
-
+  document.querySelectorAll('link[rel~="icon"]').forEach(function(el){ el.remove(); });
   var icon = document.createElement("link");
   icon.rel = "icon";
   icon.type = "image/svg+xml";

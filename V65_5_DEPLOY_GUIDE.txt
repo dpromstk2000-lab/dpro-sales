@@ -1,0 +1,77 @@
+DPRO SALESNAVI V65.5 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.5-PET-CARE-CENTRAL-MATERIAL-20260815
+Date: 2026-08-15
+
+現象:
+Umidobutsu Clinic（宇美どうぶつ病院）の正式割当商品は
+DPRO PET CARE LINE で正しい。
+しかし営業素材欄が「中央素材は要確認」となり、
+本番営業クイック操作の「提案LPを開く」が無反応（disabled）だった。
+
+原因:
+中央50システム側では動物病院の正式コードが VET、
+名称が「動物病院」、assetSlug が vet。
+一方SalesNavi正式商品名は DPRO PET CARE LINE。
+V61の安全な商品ラベル解決では PET CARE -> VET の対応がなく、
+誤素材防止のため素材表示を止めていた。
+
+V65.5修正:
+正式割当商品が DPRO PET CARE LINE の場合に限り、
+中央マスター VET（動物病院）へ固定対応する。
+店舗名から業種推測はしない。
+
+表示する中央素材:
+提案LP: lp-vet.html
+A4チラシ: flyer-vet.html
+PDF: flyer-vet.pdf
+LIVE DEMO: DPRO-VET-QR today-board
+PRODUCT: systems/pet-care.html
+すべて見る: proposal.html?source=salesnavi&code=VET#proposals
+
+安全性:
+DB変更なし
+営業履歴追加なし
+キュー変更なし
+次回予定変更なし
+Cloudflare Worker変更なし
+Supabase SQL変更なし
+V61/V63/V64-R1/V65.2/V65.4維持
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_5_PET_CARE_CENTRAL_MATERIAL_GITHUB.zip
+
+ZIP内容:
+1. config.js
+2. config.txt
+3. sales655-pet-care-material.js
+4. sales655-pet-care-material.txt
+5. V65_5_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_5-TEST-REPORT.txt
+
+アップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+手順:
+1. ZIPを解凍
+2. 6ファイル全部を選択
+3. GitHub rootへドラッグ＆ドロップ
+4. Commit changes
+5. DPRO営業ナビへ戻る
+6. Ctrl + Shift + R
+7. Umidobutsu Clinic を1回だけ開く
+
+期待:
+- クイック操作右上: V65.5
+- 営業素材: 「中央素材 VET 確認済み」
+- 「提案LP」ボタンが表示
+- クイック操作「提案LPを開く」が押せる
+- 開いたLPが動物病院向け lp-vet.html
+
+まだ押さない:
+今日の営業へ追加
+LINEでLP送付済み
+結果を記録
+
+Cloudflare Worker: 変更不要
+Supabase: 変更不要
