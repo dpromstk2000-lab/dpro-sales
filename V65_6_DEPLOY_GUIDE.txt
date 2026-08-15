@@ -1,0 +1,74 @@
+DPRO SALESNAVI V65.6 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.6-PRODUCTION-FLOW-HARDENING-20260815
+Date: 2026-08-15
+
+対象:
+2026-08-15 Umidobutsu Clinic（宇美どうぶつ病院）の本番営業テストで確認した改善点。
+
+今回まとめて修正する6点:
+1. 「今登録した店舗を開く」が、Google Places検索時の日本語名
+   「宇美どうぶつ病院」と、登録後の英語名「Umidobutsu Clinic」の差で失敗する。
+2. 営業キューで営業手段「電話」を保存しても、結果記録画面が「訪問」で開く場合がある。
+3. 結果マスターには phone_no_answer / 電話不通 があるのに、結果記録ボタンに表示されていない。
+4. 電話不通後の次回予定が「次回の確認・連絡を行う。」と汎用表示になる。
+5. 結果保存直後、開いたままの店舗詳細が最新の活動・次回予定へ即時更新されない。
+6. V65.5機能が動いていてもクイック操作右上がV65.4へ戻る。
+
+V65.6の対応:
+- 登録直後の店舗は、店名だけでなくPlace ID・郵便番号・住所数字・登録時刻から営業先IDを解決。
+- 結果記録を開く際、当日の営業キューnotesを再取得し [DPRO-SALES-METHOD:*] を活動方法へ再反映。
+- 活動方法が「電話」の時に「電話不通」結果ボタンを表示。
+- phone_no_answer または「電話するも応答なし」等の電話活動に続く汎用次回予定を
+  「電話不通のため再架電」と表示。
+- 営業結果保存後、背面で開いている同一店舗詳細を既存のopenProspect経路で再読込。
+- クイック操作のバージョン表示をCSSでV65.6へ固定。
+
+重要:
+- V65.5の DPRO PET CARE LINE -> VET 中央素材対応は維持。
+- V65.4の LINE送付LPフォロー表示改善も維持。
+- DBスキーマ変更なし。
+- Cloudflare Worker変更なし。
+- Supabase SQL変更なし。
+- V65.6が勝手に営業履歴・営業キュー・次回予定を作成することはありません。
+- 「電話不通」はユーザーが営業結果として選択して保存した時だけ、既存record-activity処理で保存されます。
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_6_PRODUCTION_FLOW_HARDENING_GITHUB.zip
+
+ZIP内容:
+1. config.js
+2. config.txt
+3. sales656-production-hardening.js
+4. sales656-production-hardening.txt
+5. V65_6_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_6-TEST-REPORT.txt
+
+アップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+手順:
+1. ZIPをダウンロード
+2. ZIPを解凍
+3. 中の6ファイル全部を選択
+4. GitHub dpro-sales / main / root にドラッグ＆ドロップ
+5. Commit changes
+6. GitHub Pages反映後、DPRO営業ナビを Ctrl + Shift + R
+7. まず既存のUmidobutsu Clinic詳細を開いて以下を確認
+   - 右上 V65.6
+   - 中央素材 VET 確認済み
+   - 最近の活動「電話するも応答なし」
+   - 次回予定が「8/18(火) 電話不通のため再架電」と表示されること
+8. 次の新規実店舗テストで以下を確認
+   - 登録後「今登録した店舗を開く」で正しい店舗詳細が開く
+   - 電話で今日の営業へ追加
+   - 結果記録の活動方法が最初から「電話」
+   - 「電話不通」ボタンが表示される
+   - 電話不通で保存した場合、次回予定が「電話不通のため再架電」と表示される
+   - 保存後、開いていた店舗詳細が最新状態へ更新される
+
+触らない:
+- Cloudflare Worker
+- Supabase SQL
+- 既存のAli’i Mili営業履歴
+- Umidobutsu Clinicの既存営業履歴の再登録

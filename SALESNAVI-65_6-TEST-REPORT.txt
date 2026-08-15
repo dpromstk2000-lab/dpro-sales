@@ -1,0 +1,57 @@
+DPRO SALESNAVI V65.6 TEST REPORT
+===================================
+Version: SALESNAVI-65.6-PRODUCTION-FLOW-HARDENING-20260815
+Date: 2026-08-15
+
+BASE:
+V61 + V63 + V64-R1 + V65.2 + V65.4 + V65.5
+
+PRODUCTION TEST FINDINGS:
+A. Import shortcut
+   Search name: 宇美どうぶつ病院
+   Stored pipeline name: Umidobutsu Clinic
+   Old shortcut searched only the pre-import display name -> 0 results.
+
+B. Method handoff
+   Queue notes persisted:
+   [DPRO-SALES-METHOD:phone]
+   営業手段: 電話
+   But result modal opened with native default activityType=visit.
+
+C. Phone no-answer
+   owner.html resultLabel already contains:
+   phone_no_answer: 電話不通
+   but openRecordActivity choices omitted phone_no_answer.
+
+D. Follow-up wording
+   Phone call summary: 電話するも応答なし
+   Auto follow-up: 次回の確認・連絡を行う。
+   Desired contextual display: 電話不通のため再架電
+
+E. Detail freshness
+   Record succeeded and follow-up existed server-side,
+   but the already-open detail drawer showed stale data until reopened.
+
+F. Version badge
+   V65.5 material function worked but older V65.4 observer could overwrite visible badge text.
+
+V65.6 SAFETY:
+- No SQL: PASS
+- No Worker: PASS
+- No automatic activity POST: PASS
+- No automatic queue POST/PATCH: PASS
+- Existing scripts preserved: PASS
+
+TESTS:
+sales656-production-hardening.js syntax: PASS
+config.js syntax: PASS
+queue marker phone -> phone: PASS
+Japanese/English imported-store resolution scoring: PASS
+phone_no_answer explicit activity detection: PASS
+phone summary "電話するも応答なし" detection: PASS
+generic phone follow-up -> "電話不通のため再架電": PASS
+unrelated generic follow-up preserved: PASS
+LINE V65.4 behavior not overwritten by phone rewrite: PASS
+V65.5 loader preserved in config: PASS
+V65.6 loader added after V65.5: PASS
+version visual lock rule present: PASS
