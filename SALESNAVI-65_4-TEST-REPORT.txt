@@ -1,0 +1,47 @@
+DPRO SALESNAVI V65.4 TEST REPORT
+===================================
+Version: SALESNAVI-65.4-FOLLOWUP-CONTEXT-R2-20260815
+Date: 2026-08-15
+
+OBSERVED V65.3:
+- V65.3 badge loaded: PASS
+- next action clarification: FAIL in real legacy record
+- legacy next schedule clarification: FAIL in real legacy record
+
+ROOT CAUSE REVISION:
+V65.3 required action_type=reply_check.
+Legacy next-action records are not guaranteed to use that type.
+This condition was overly strict.
+
+V65.4 FIX:
+Use pending/snoozed + generic description + due date +
+nearest recent LINE/LP activity within 7 days.
+Do not require action_type.
+
+ADDITIONAL HARDENING:
+- supports snake_case/camelCase activity fields
+- supports direct/wrapped sales-detail JSON shapes
+- keeps already-specific descriptions unchanged
+- nearest non-LINE activity blocks conversion
+- old LINE/LP activity outside 7 days blocks conversion
+
+SAFETY:
+DB write: NONE
+activity create: NONE
+next_action create: NONE
+queue update: NONE
+Worker change: NONE
+SQL change: NONE
+V65.2 modification: NONE
+
+RESULTS:
+sales654-followup-context.js syntax: PASS
+config.js syntax: PASS
+legacy generic + recent LINE/LP: PASS
+generic + action_type other than reply_check: PASS
+old unrelated LINE/LP guard: PASS
+nearest non-LINE guard: PASS
+specific description preserve: PASS
+wrapped payload support: PASS
+no_worker: PASS
+no_sql: PASS

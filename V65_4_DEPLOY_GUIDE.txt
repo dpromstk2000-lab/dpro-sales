@@ -1,0 +1,74 @@
+DPRO SALESNAVI V65.4 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.4-FOLLOWUP-CONTEXT-R2-20260815
+Date: 2026-08-15
+
+今回の確認結果:
+V65.3自体は読み込まれており、画面右上が「V65.3」になりました。
+しかし「次の行動」「次回予定」は
+「8/17(月) 次回の確認・連絡を行う。」
+のままでした。
+
+原因:
+V65.3では、既存next_actionの action_type が
+reply_check であることを必須条件にしていました。
+既存レコードではこの条件を満たさないケースがあるため、
+表示変換が実行されませんでした。
+
+V65.4修正:
+- action_typeを必須条件から外す
+- pending/snoozed
+- 汎用文「次回の確認・連絡を行う。」
+- due_dateあり
+- due_date以前7日以内の最も近い活動がLINE + 提案LP
+の全条件で「LINE送付LPの反応・返信確認」へ表示具体化
+
+安全性:
+DB変更なし
+営業履歴追加なし
+次回予定追加なし
+キュー変更なし
+Cloudflare Worker変更なし
+Supabase SQL変更なし
+V65.2本体変更なし
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_4_FOLLOWUP_CONTEXT_R2_GITHUB.zip
+
+ZIP内容:
+1. config.js
+2. config.txt
+3. sales654-followup-context.js
+4. sales654-followup-context.txt
+5. V65_4_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_4-TEST-REPORT.txt
+
+アップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+手順:
+1. ZIPを解凍
+2. 6ファイル全部を選択
+3. GitHub rootへドラッグ＆ドロップ
+4. Commit changes
+5. DPRO営業ナビへ戻る
+6. Ctrl + Shift + R
+7. Ali’i Miliを1回だけ開く
+
+期待:
+右上: V65.4
+次の行動:
+8/17(月) LINE送付LPの反応・返信確認
+下の次回予定:
+8/17(月) LINE送付LPの反応・返信確認
+
+触らない:
+「今日の営業へ追加」
+「LINEでLP送付済み」
+「結果を記録」
+
+Cloudflare Worker:
+変更不要
+
+Supabase:
+変更不要

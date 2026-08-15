@@ -18,7 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
-  usabilityVersion: "SALESNAVI-65.3-FOLLOWUP-CONTEXT-20260815",
+  usabilityVersion: "SALESNAVI-65.4-FOLLOWUP-CONTEXT-R2-20260815",
   timezone: "Asia/Tokyo"
 });
 
@@ -61,19 +61,19 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.3: follow-up display context pre-hook.
-   Must load before V65.2 so sales-detail responses can be clarified without DB mutation. */
+/* V65.4: legacy follow-up context correction.
+   Replaces V65.3 loader; old V65.3 file may remain in repository but is not loaded. */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
   var path = String(location.pathname || "").toLowerCase();
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
-  if (document.querySelector('script[data-sales653-followup-context]')) return;
+  if (document.querySelector('script[data-sales654-followup-context]')) return;
 
   var s = document.createElement("script");
-  s.src = "./sales653-followup-context.js?v=20260815-653";
+  s.src = "./sales654-followup-context.js?v=20260815-654";
   s.async = false;
-  s.dataset.sales653FollowupContext = "1";
+  s.dataset.sales654FollowupContext = "1";
   document.head.appendChild(s);
 })();
 
