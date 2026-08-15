@@ -1,0 +1,50 @@
+DPRO SALESNAVI V65.7 TEST REPORT
+===================================
+Version: SALESNAVI-65.7-QUEUE-COMPLETE-HANDOFF-20260815
+Date: 2026-08-15
+
+OBSERVED:
+Umidobutsu Clinic:
+- sales-detail: 本日営業済み
+- recent activity: 電話するも応答なし
+- next action: 8/18(火) 電話不通のため再架電
+- dashboard queue count: 1
+- queue status: 対応中
+
+ROOT CAUSE:
+V65.2 detail quick-result:
+data-sales65-result -> hero [data-record-activity].click()
+
+The hero button has prospect id but no queue id.
+
+Native owner.html:
+openRecordActivity(prospectId, queueId="")
+creates:
+<input name="queueItemId" value="">
+
+submitActivity sends:
+queueItemId: form.queueItemId.value || null
+completeQueue: true
+
+So activity save can succeed while queue completion has no queue item to target.
+
+V65.7 FIX:
+- Fetch today's queue by prospect_id when result form opens.
+- Populate hidden queueItemId with the active queue id.
+- Re-apply saved sales method from queue notes.
+- Explicit stale-queue reconciliation button for already-saved activities.
+
+STATIC / UNIT RESULTS:
+sales657-queue-complete-handoff.js syntax: PASS
+config.js syntax: PASS
+phone marker parsing: PASS
+active queue lookup: PASS
+today activity detection: PASS
+queueItemId handoff code present: PASS
+reconciliation requires explicit click: PASS
+reconciliation re-validates today's activity: PASS
+reconciliation PATCHes queue status only: PASS
+no record-activity POST in V65.7: PASS
+no follow-up POST in V65.7: PASS
+V65.6 preserved: PASS
+V65.7 loaded after V65.6: PASS

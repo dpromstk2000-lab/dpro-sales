@@ -18,7 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
-  usabilityVersion: "SALESNAVI-65.6-PRODUCTION-FLOW-HARDENING-20260815",
+  usabilityVersion: "SALESNAVI-65.7-QUEUE-COMPLETE-HANDOFF-20260815",
   timezone: "Asia/Tokyo"
 });
 
@@ -112,6 +112,20 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales656-production-hardening.js?v=20260815-656";
   s.async = false;
   s.dataset.sales656ProductionHardening = "1";
+  document.head.appendChild(s);
+})();
+
+/* V65.7: result modal queue-id handoff + stale queue reconciliation */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales657-queue-complete]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales657-queue-complete-handoff.js?v=20260815-657";
+  s.async = false;
+  s.dataset.sales657QueueComplete = "1";
   document.head.appendChild(s);
 })();
 

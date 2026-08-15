@@ -1,0 +1,76 @@
+DPRO SALESNAVI V65.7 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.7-QUEUE-COMPLETE-HANDOFF-20260815
+Date: 2026-08-15
+
+本番テストで確定した不具合:
+Umidobutsu Clinicは
+- 活動履歴「電話するも応答なし」保存済み
+- 次回予定 8/18(火) 保存済み
+- 店舗詳細は「本日営業済み」
+なのに、
+「今日の営業」では営業キューが1件のまま、状態も「対応中」。
+
+原因:
+owner.htmlの営業結果保存処理は
+queueItemId が渡された場合にキュー完了処理と紐づけられます。
+
+営業キュー内の「結果を記録」ボタンには data-queue-id があるため正常。
+一方、V65.2 店舗詳細の「結果を記録」は
+店舗上部の native [data-record-activity] ボタンを再利用するだけで、
+queue id が付いていません。
+
+そのため店舗詳細から結果記録すると:
+活動履歴・次回予定 = 保存成功
+営業キュー = in_progress のまま
+という不整合が起きました。
+
+V65.7修正:
+1. 店舗詳細から結果記録を開く時も、当日の営業キューをprospect_idで再取得。
+2. activityForm の queueItemId へ、該当する当日キューIDを自動セット。
+3. 同時にキューnotesの営業手段も再反映。
+4. 今後は「記録して次へ進む」で既存処理の completeQueue=true が
+   正しいqueueItemIdに対して動く。
+5. 既に発生済みのUmidobutsu Clinicのような不整合には、
+   店舗詳細内に
+   「営業キューを完了へ同期」
+   ボタンを表示。
+6. このボタンは活動履歴を追加しない。
+   今日の活動履歴が存在し、当日キューがまだactiveであることを
+   直前に再確認してから queue status だけ completed へPATCHする。
+
+安全性:
+- 活動履歴の再登録なし
+- 次回予定の再登録なし
+- DBスキーマ変更なし
+- Worker変更なし
+- Supabase SQL変更なし
+- ページを開いただけでは既存キューを書き換えない
+- 既存不整合の修正はユーザーが専用ボタンを押した時だけ
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_7_QUEUE_COMPLETE_HANDOFF_GITHUB.zip
+
+ZIP内容:
+1. config.js
+2. config.txt
+3. sales657-queue-complete-handoff.js
+4. sales657-queue-complete-handoff.txt
+5. V65_7_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_7-TEST-REPORT.txt
+
+アップロード:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+反映後:
+1. Ctrl + Shift + R
+2. Umidobutsu Clinic の「詳細」を開く
+3. 右上 V65.7 を確認
+4. 「営業結果は保存済みですが、今日の営業キューだけ未完了です」
+   が出た場合だけ
+   「営業キューを完了へ同期」を1回押す
+5. 今日の営業画面へ戻り、営業キュー件数が0になることを確認
+
+注意:
+「結果を記録」をもう一度押して再保存しないこと。
+Umidobutsu Clinicの営業履歴は追加しないこと。
