@@ -1,0 +1,56 @@
+DPRO SALESNAVI V65.3 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.3-FOLLOWUP-CONTEXT-20260815
+Date: 2026-08-15
+
+目的:
+V65.2で、前日にLINEで提案LPを送付済みでも、
+翌日以降になると「次回予定」が
+「次回の確認・連絡を行う。」
+という汎用文へ戻る表示を修正します。
+
+修正内容:
+- pending/snoozed の reply_check が汎用文の場合のみ対象
+- 次回予定日の7日以内にある「直近の活動」がLINE + 提案LP送付なら
+  表示を「LINE送付LPの反応・返信確認」へ具体化
+- DBの next_action 値そのものは変更しない
+- 本日の営業判定、二重登録防止、V61/V63/V64-R1/V65.2は維持
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_3_FOLLOWUP_CONTEXT_GITHUB.zip
+
+ZIP内ファイル:
+1. config.js
+2. config.txt
+3. sales653-followup-context.js
+4. sales653-followup-context.txt
+5. V65_3_DEPLOY_GUIDE.txt
+6. SALESNAVI-65_3-TEST-REPORT.txt
+
+GitHubアップロード先:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+操作:
+1. ZIPをダウンロード
+2. ZIPを解凍
+3. 上記6ファイルをすべて選択
+4. GitHubの dpro-sales / main / root にドラッグ＆ドロップ
+5. Commit changes
+6. GitHub Pagesの反映を待つ
+7. DPRO営業ナビを Ctrl + Shift + R で強制再読込
+8. Ali’i Mili の店舗詳細を1回だけ開く
+
+期待表示:
+- クイック操作右上: V65.3
+- 次の行動:
+  8/17(月) LINE送付LPの反応・返信確認
+- 下の次回予定:
+  8/17(月) LINE送付LPの反応・返信確認
+
+重要:
+- Ali’i Miliで「今日の営業へ追加」は押さない
+- 「LINEでLP送付済み」は押さない
+- 本番営業履歴は追加しない
+- Cloudflare Worker変更なし
+- Supabase SQL変更なし
+- sales65-quick-sales.js 自体は変更なし

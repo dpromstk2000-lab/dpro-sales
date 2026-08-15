@@ -1,0 +1,44 @@
+DPRO SALESNAVI V65.3 TEST REPORT
+===================================
+Version: SALESNAVI-65.3-FOLLOWUP-CONTEXT-20260815
+Date: 2026-08-15
+
+BASE:
+V65.2 + V64-R1 + V63 + V61
+
+ROOT CAUSE:
+V65.2 nextActionDisplay() は、
+汎用フォロー文を「LINE送付LPの反応・返信確認」へ置換する条件が
+「本日LINE+LP活動あり(lineLpToday)」に限定されていました。
+そのため、8/14送付 → 8/15閲覧では条件がfalseとなり、
+8/17のフォロー表示が汎用文へ戻りました。
+
+FIX:
+V65.2本体を壊さず、V65.3 pre-hookを追加。
+sales-detailレスポンスの表示用データだけを確認し、
+以下をすべて満たす場合のみ汎用文を具体化:
+- status = pending / snoozed
+- action_type = reply_check
+- description = 汎用文
+- due_dateの7日以内
+- due_date以前の直近活動がLINE + 提案LP送付
+
+SAFETY:
+- DB write: NONE
+- activity create: NONE
+- next_action create: NONE
+- queue update: NONE
+- Worker change: NONE
+- SQL change: NONE
+- V65.2 script modification: NONE
+
+RESULTS:
+config.js syntax: PASS
+sales653-followup-context.js syntax: PASS
+specific LINE/LP context conversion: PASS
+old unrelated LINE activity guard: PASS
+non-LINE latest activity guard: PASS
+already-specific description preserved: PASS
+non-reply_check preserved: PASS
+no_worker: PASS
+no_sql: PASS
