@@ -18,7 +18,7 @@ window.DPRO_CONFIG = Object.freeze({
   proposalLinkVersion: "SALESNAVI-61-TOP5-RERENDER-LOCK-20260814",
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
-  usabilityVersion: "SALESNAVI-65.7-QUEUE-COMPLETE-HANDOFF-20260815",
+  usabilityVersion: "SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815",
   timezone: "Asia/Tokyo"
 });
 
@@ -126,6 +126,21 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales657-queue-complete-handoff.js?v=20260815-657";
   s.async = false;
   s.dataset.sales657QueueComplete = "1";
+  document.head.appendChild(s);
+})();
+
+
+/* V65.8: visible stale-queue recovery + activity-form guard */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales658-stale-queue]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales658-stale-queue-recovery.js?v=20260815-658";
+  s.async = false;
+  s.dataset.sales658StaleQueue = "1";
   document.head.appendChild(s);
 })();
 

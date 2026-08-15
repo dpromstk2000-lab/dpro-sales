@@ -1,0 +1,70 @@
+DPRO SALESNAVI V65.8 DEPLOY GUIDE
+===================================
+Version: SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815
+Date: 2026-08-15
+
+今回の画面で確定:
+Umidobutsu Clinicは店舗詳細では「本日営業済み」なのに、
+今日の営業画面はまだ
+- 今日の営業キュー: 1
+- 営業キュー左メニュー: 1
+- Umidobutsu Clinic: 対応中
+- 「結果を記録」ボタンあり
+のまま。
+
+つまりV65.7の「今後のqueueItemId引継ぎ」は残す一方、
+すでに発生している不整合の修復UIが店舗詳細で出なかったため、
+V65.8では修復判定を「今日の営業／営業キュー」の
+実際に残っているキューカード側へ移しました。
+
+V65.8の動作:
+1. 今日の営業・営業キューに表示中のキューを確認。
+2. 同じ営業先に本日の実営業活動がすでに保存されているか確認。
+3. 「活動済み + キューだけactive」の時のみ、
+   既存の「結果を記録」を無効化して
+   「キューだけ完了」ボタンを表示。
+4. 「キューだけ完了」を押した時、
+   もう一度APIで
+   - queueがactive
+   - 本日の実営業活動が存在
+   を再確認。
+5. 条件一致時のみ queue status=completed をPATCH。
+6. 活動履歴・次回予定は一切追加しない。
+
+さらに今後の二重ガード:
+営業結果フォームが開いた時、クリック元に依存せず
+hidden queueItemIdを当日のキューから再取得してセット。
+営業手段もキューnotesから再反映します。
+
+GitHub用ZIP:
+DPRO_SALESNAVI_65_8_STALE_QUEUE_RECOVERY_GITHUB.zip
+
+ZIP内容:
+- config.js
+- config.txt
+- sales658-stale-queue-recovery.js
+- sales658-stale-queue-recovery.txt
+- V65_8_DEPLOY_GUIDE.txt
+- SALESNAVI-65_8-TEST-REPORT.txt
+
+アップロード:
+https://github.com/dpromstk2000-lab/dpro-sales/upload/main
+
+手順:
+1. ZIP解凍
+2. 6ファイル全部をrootへドラッグ
+3. Commit changes
+4. owner.htmlをCtrl + Shift + R
+5. 今日の営業画面を表示
+6. Umidobutsu Clinicの行で
+   「営業結果保存済み」
+   「キューだけ完了」
+   が出ることを確認
+7. 「キューだけ完了」を1回だけ押す
+8. 今日の営業キューが0件になることを確認
+
+重要:
+- 「結果を記録」はもう押さない。
+- Umidobutsu Clinicの活動履歴を再登録しない。
+- 次回予定を再登録しない。
+- SQL/Worker変更なし。

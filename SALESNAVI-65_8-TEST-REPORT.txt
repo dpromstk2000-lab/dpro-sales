@@ -1,0 +1,31 @@
+DPRO SALESNAVI V65.8 TEST REPORT
+===================================
+Version: SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815
+
+OBSERVED AFTER V65.7:
+PASS: detail version V65.7
+PASS: 本日営業済み
+PASS: activity = 電話するも応答なし
+PASS: next = 8/18 電話不通のため再架電
+FAIL: 今日の営業キュー = 1
+FAIL: queue row = 対応中
+FAIL: native 結果を記録 still enabled
+FAIL: V65.7 detail reconciliation control did not surface
+
+V65.8:
+- Moves stale mismatch recovery to visible queue cards.
+- Explicit user click required for queue completion.
+- Disables duplicate-result button only when today's real sales activity exists.
+- Re-validates queue + activity immediately before PATCH.
+- Adds activity-form hydration independent of the original click path.
+
+SAFETY CHECKS:
+JS syntax: PASS
+config syntax: PASS
+V65.7 preserved: PASS
+V65.8 loaded after V65.7: PASS
+No /record-activity write in V65.8: PASS
+No follow-up write: PASS
+No queue enqueue: PASS
+Only reconciliation write = PATCH queue status completed: PASS
+Explicit click required: PASS
