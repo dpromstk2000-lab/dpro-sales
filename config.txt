@@ -21,6 +21,8 @@ window.DPRO_CONFIG = Object.freeze({
   usabilityVersion: "SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815",
   searchBrushupVersion: "SALESNAVI-66-REAL-SALES-SEARCH-BRUSHUP-20260819",
   currentLocationSearchVersion: "SALESNAVI-66.2-CURRENT-LOCATION-SEARCH-20260819",
+  currentLocationVisibilityVersion: "SALESNAVI-66.3-CURRENT-LOCATION-VISIBILITY-20260819",
+  readableTextVersion: "SALESNAVI-66.4-READABLE-TEXT-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -33,7 +35,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V63: queue sales method -> activity result method handoff */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -47,7 +48,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V64-R1: registered prospect -> today's queue + explicit sales method */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -61,7 +61,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.4: LINE follow-up context correction */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -75,7 +74,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.2 base: production sales quick flow + unified detail display */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -89,7 +87,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.5: DPRO PET CARE LINE -> central VET material mapping */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -103,7 +100,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.6: real-sales production flow hardening */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -117,7 +113,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V65.7: result modal queue-id handoff + stale queue reconciliation */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -131,8 +126,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-
-/* V65.8: visible stale-queue recovery + activity-form guard */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -146,7 +139,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V66: practical prospect search modes for real sales */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -162,7 +154,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-/* V66.2: current location / office / custom search origin */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -173,6 +164,33 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales662-current-location-search.js?v=20260819-662";
   s.async = false;
   s.dataset.sales662CurrentLocation = "1";
+  document.head.appendChild(s);
+})();
+
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales663-current-location-visibility]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales663-current-location-visibility.js?v=20260819-663";
+  s.async = false;
+  s.dataset.sales663CurrentLocationVisibility = "1";
+  document.head.appendChild(s);
+})();
+
+/* V66.4: readable text */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales664-readable-text]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales664-readable-text.js?v=20260819-664";
+  s.async = false;
+  s.dataset.sales664ReadableText = "1";
   document.head.appendChild(s);
 })();
 
