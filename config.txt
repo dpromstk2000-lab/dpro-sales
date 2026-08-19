@@ -19,6 +19,7 @@ window.DPRO_CONFIG = Object.freeze({
   activityMethodHandoffVersion: "SALESNAVI-63-ACTIVITY-METHOD-HANDOFF-20260814",
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
   usabilityVersion: "SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815",
+  searchBrushupVersion: "SALESNAVI-66-REAL-SALES-SEARCH-BRUSHUP-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -141,6 +142,22 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales658-stale-queue-recovery.js?v=20260815-658";
   s.async = false;
   s.dataset.sales658StaleQueue = "1";
+  document.head.appendChild(s);
+})();
+
+/* V66: practical prospect search modes for real sales */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  var isOwner = path.endsWith("/owner.html") || path.endsWith("owner.html");
+  var isStaff = path.endsWith("/staff.html") || path.endsWith("staff.html");
+  if (!isOwner && !isStaff) return;
+  if (document.querySelector('script[data-sales66-search-brushup]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales66-search-brushup.js?v=20260819-66";
+  s.async = false;
+  s.dataset.sales66SearchBrushup = "1";
   document.head.appendChild(s);
 })();
 
