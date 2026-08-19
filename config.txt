@@ -25,7 +25,7 @@ window.DPRO_CONFIG = Object.freeze({
   readableTextVersion: "SALESNAVI-66.4-READABLE-TEXT-20260819",
   locationDisplayFixVersion: "SALESNAVI-66.5-LOCATION-DISPLAY-FIX-20260819",
   searchSpinnerFixVersion: "SALESNAVI-66.6-SEARCH-SPINNER-FIX-20260819",
-  nonPhoneOutreachVersion: "SALESNAVI-67.2-NONPHONE-DRAWER-FAILSAFE-20260819",
+  nonPhoneOutreachVersion: "SALESNAVI-67.3-CONTACT-FIRST-POLICY-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -197,7 +197,6 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-
 /* V66.5: acquired-current-location visible confirmation */
 (function(){
   "use strict";
@@ -212,8 +211,7 @@ window.DPRO_CONFIG = Object.freeze({
   document.head.appendChild(s);
 })();
 
-
-/* V67: non-phone outreach as the default real-sales flow */
+/* V67.2: non-phone outreach base */
 (function(){
   "use strict";
   if (typeof document === "undefined") return;
@@ -224,6 +222,20 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales672-nonphone-drawer-failsafe.js?v=20260819-672";
   s.async = false;
   s.dataset.sales67NonphoneOutreach = "1";
+  document.head.appendChild(s);
+})();
+
+/* V67.3: CONTACT-first new-sales policy */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales673-contact-first]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales673-contact-first-policy.js?v=20260819-673";
+  s.async = false;
+  s.dataset.sales673ContactFirst = "1";
   document.head.appendChild(s);
 })();
 
