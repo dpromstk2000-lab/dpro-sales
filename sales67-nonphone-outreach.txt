@@ -1,6 +1,6 @@
 /*
  * DPRO SALESNAVI V67
- * Version: SALESNAVI-67-NONPHONE-OUTREACH-20260819
+ * Version: SALESNAVI-67.1-DRAWER-LATE-MOUNT-FIX-20260819
  *
  * Goal:
  * - Make non-phone outreach the default sales workflow.
@@ -16,7 +16,7 @@
 (() => {
   'use strict';
 
-  const VERSION = 'SALESNAVI-67-NONPHONE-OUTREACH-20260819';
+  const VERSION = 'SALESNAVI-67.1-DRAWER-LATE-MOUNT-FIX-20260819';
   const ACTIVE_QUEUE = new Set(['queued', 'planned', 'in_progress']);
   const sentLocks = new Set();
   let injecting = false;
@@ -709,20 +709,65 @@
     }, true);
   }
 
+  let drawerObserver = null;
+  let drawerBootstrapObserver = null;
+
   function bindDrawerObserver() {
     const body = $('#drawerBody');
-    if (!body) return;
-    new MutationObserver(() => {
+    if (!body) return false;
+    if (body.dataset.sales67DrawerBound === '1') {
+      injectPanel();
+      return true;
+    }
+
+    body.dataset.sales67DrawerBound = '1';
+    drawerObserver = new MutationObserver(() => {
       clearTimeout(drawerTimer);
-      drawerTimer = setTimeout(injectPanel, 80);
-    }).observe(body, { childList:true, subtree:true, attributes:true, attributeFilter:['href'] });
+      drawerTimer = setTimeout(() => {
+        injectPanel();
+        deemphasizeLegacyFlow();
+      }, 80);
+    });
+    drawerObserver.observe(body, {
+      childList:true,
+      subtree:true,
+      attributes:true,
+      attributeFilter:['href','class','data-record-activity']
+    });
+
     injectPanel();
+    deemphasizeLegacyFlow();
+    return true;
+  }
+
+  function waitForDrawerBody() {
+    if (bindDrawerObserver()) return;
+
+    if (drawerBootstrapObserver) return;
+    drawerBootstrapObserver = new MutationObserver(() => {
+      if (bindDrawerObserver()) {
+        drawerBootstrapObserver.disconnect();
+        drawerBootstrapObserver = null;
+      }
+    });
+    drawerBootstrapObserver.observe(document.documentElement, {
+      childList:true,
+      subtree:true
+    });
+
+    // Safety stop: do not leave a page-wide observer alive forever.
+    setTimeout(() => {
+      if (drawerBootstrapObserver) {
+        drawerBootstrapObserver.disconnect();
+        drawerBootstrapObserver = null;
+      }
+    }, 60000);
   }
 
   function init() {
     ensureStyle();
     bindClicks();
-    bindDrawerObserver();
+    waitForDrawerBody();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once:true });
