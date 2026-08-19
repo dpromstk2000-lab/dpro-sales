@@ -1,6 +1,6 @@
 /*
- * DPRO SALESNAVI V66.2
- * Version: SALESNAVI-66.2-CURRENT-LOCATION-SEARCH-20260819
+ * DPRO SALESNAVI V66.6 HOTFIX
+ * Version: SALESNAVI-66.6-SEARCH-SPINNER-FIX-20260819
  *
  * Purpose:
  * - PC / notebook can search from the device's CURRENT location.
@@ -22,7 +22,7 @@
 (() => {
   "use strict";
 
-  const VERSION = "SALESNAVI-66.2-CURRENT-LOCATION-SEARCH-20260819";
+  const VERSION = "SALESNAVI-66.6-SEARCH-SPINNER-FIX-20260819";
   const CFG = window.DPRO_CONFIG || {};
   const OFFICE_ADDRESS = "福岡県糟屋郡志免町田富1-17-7";
   const BASE_KEY = `${CFG.sessionStorageKey || "dpro_sales_session"}_v662_origin_mode`;
@@ -327,7 +327,7 @@
     `;
     actions.insertAdjacentElement("beforebegin", bar);
 
-    $("#sales662SortNear").addEventListener("click", () => decorateCurrentResults(true));
+    $("#sales662SortNear").addEventListener("click", () => { decorateCurrentResults(true); markDecoratedRun(); });
     $("#sales662SelectTop5").addEventListener("click", selectTop5);
     return true;
   }
@@ -637,6 +637,7 @@
 
   function selectTop5() {
     decorateCurrentResults(true);
+    markDecoratedRun();
     const rows = $$("#searchResults table.data-table tbody tr");
     let count = 0;
     for (const row of rows) {
@@ -677,23 +678,71 @@
     return ok1 && ok2;
   }
 
+  function currentRunKey() {
+    return String(
+      lastSearchResponse?.searchRun?.id
+      || lastSearchResponse?.requestId
+      || ""
+    );
+  }
+
+  function markDecoratedRun() {
+    const table = $("#searchResults table.data-table");
+    const key = currentRunKey();
+    if (table && key) table.dataset.sales662DecoratedRun = key;
+  }
+
+  function decorateOnceForCurrentRun(forceSort = false) {
+    const table = $("#searchResults table.data-table");
+    const key = currentRunKey();
+    if (!table || !lastSearchResponse) return false;
+
+    if (!forceSort && key && table.dataset.sales662DecoratedRun === key) {
+      return true;
+    }
+
+    decorateCurrentResults(forceSort);
+    markDecoratedRun();
+    return true;
+  }
+
+  function scheduleResultDecoration() {
+    const delays = [0, 80, 200, 500, 1000];
+    for (const delay of delays) {
+      setTimeout(() => {
+        if (processing) return;
+        decorateOnceForCurrentRun(false);
+      }, delay);
+    }
+  }
+
   function processDom() {
     build();
-    if (lastSearchResponse) decorateCurrentResults(false);
   }
 
   window.addEventListener("dpro:sales662-search-results", () => {
-    setTimeout(() => decorateCurrentResults(true), 0);
-    setTimeout(() => decorateCurrentResults(true), 120);
+    scheduleResultDecoration();
   });
 
   function start() {
-    processDom();
-    observer = new MutationObserver(() => {
-      if (processing) return;
-      processDom();
-    });
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    // The search form already exists on owner.html in normal operation.
+    // Observe only until V66 UI is built, then disconnect.
+    if (!build()) {
+      observer = new MutationObserver(() => {
+        if (build()) {
+          observer.disconnect();
+          observer = null;
+        }
+      });
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      setTimeout(() => {
+        if (observer) {
+          observer.disconnect();
+          observer = null;
+        }
+      }, 30000);
+    }
+
     document.documentElement.dataset.sales662 = VERSION;
   }
 
