@@ -25,6 +25,7 @@ window.DPRO_CONFIG = Object.freeze({
   readableTextVersion: "SALESNAVI-66.4-READABLE-TEXT-20260819",
   locationDisplayFixVersion: "SALESNAVI-66.5-LOCATION-DISPLAY-FIX-20260819",
   searchSpinnerFixVersion: "SALESNAVI-66.6-SEARCH-SPINNER-FIX-20260819",
+  nonPhoneOutreachVersion: "SALESNAVI-67-NONPHONE-OUTREACH-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -208,6 +209,21 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales665-location-display-fix.js?v=20260819-665";
   s.async = false;
   s.dataset.sales665LocationDisplayFix = "1";
+  document.head.appendChild(s);
+})();
+
+
+/* V67: non-phone outreach as the default real-sales flow */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales67-nonphone-outreach]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales67-nonphone-outreach.js?v=20260819-67";
+  s.async = false;
+  s.dataset.sales67NonphoneOutreach = "1";
   document.head.appendChild(s);
 })();
 
