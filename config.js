@@ -20,6 +20,7 @@ window.DPRO_CONFIG = Object.freeze({
   directQueueVersion: "SALESNAVI-64-R1-QUEUE-SPINNER-FIX-20260814",
   usabilityVersion: "SALESNAVI-65.8-STALE-QUEUE-RECOVERY-20260815",
   searchBrushupVersion: "SALESNAVI-66-REAL-SALES-SEARCH-BRUSHUP-20260819",
+  currentLocationSearchVersion: "SALESNAVI-66.2-CURRENT-LOCATION-SEARCH-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -158,6 +159,20 @@ window.DPRO_CONFIG = Object.freeze({
   s.src = "./sales66-search-brushup.js?v=20260819-66";
   s.async = false;
   s.dataset.sales66SearchBrushup = "1";
+  document.head.appendChild(s);
+})();
+
+/* V66.2: current location / office / custom search origin */
+(function(){
+  "use strict";
+  if (typeof document === "undefined") return;
+  var path = String(location.pathname || "").toLowerCase();
+  if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
+  if (document.querySelector('script[data-sales662-current-location]')) return;
+  var s = document.createElement("script");
+  s.src = "./sales662-current-location-search.js?v=20260819-662";
+  s.async = false;
+  s.dataset.sales662CurrentLocation = "1";
   document.head.appendChild(s);
 })();
 
