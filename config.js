@@ -25,7 +25,7 @@ window.DPRO_CONFIG = Object.freeze({
   readableTextVersion: "SALESNAVI-66.4-READABLE-TEXT-20260819",
   locationDisplayFixVersion: "SALESNAVI-66.5-LOCATION-DISPLAY-FIX-20260819",
   searchSpinnerFixVersion: "SALESNAVI-66.6-SEARCH-SPINNER-FIX-20260819",
-  nonPhoneOutreachVersion: "SALESNAVI-67.1-DRAWER-LATE-MOUNT-FIX-20260819",
+  nonPhoneOutreachVersion: "SALESNAVI-67.2-NONPHONE-DRAWER-FAILSAFE-20260819",
   timezone: "Asia/Tokyo"
 });
 
@@ -221,7 +221,7 @@ window.DPRO_CONFIG = Object.freeze({
   if (!path.endsWith("/owner.html") && !path.endsWith("owner.html")) return;
   if (document.querySelector('script[data-sales67-nonphone-outreach]')) return;
   var s = document.createElement("script");
-  s.src = "./sales67-nonphone-outreach.js?v=20260819-671";
+  s.src = "./sales672-nonphone-drawer-failsafe.js?v=20260819-672";
   s.async = false;
   s.dataset.sales67NonphoneOutreach = "1";
   document.head.appendChild(s);
