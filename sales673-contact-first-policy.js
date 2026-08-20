@@ -1,4 +1,7 @@
 /*
+ * DPRO SALESNAVI V67.5 PACKAGE
+ * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-candidate pipeline filter.
+ *
  * DPRO SALESNAVI V67.4
  * Version: SALESNAVI-67.4-LINE-OFFICIAL-LAST-CHANNEL-20260820
  *
@@ -596,4 +599,691 @@ DPRO SHOP`;
   }
 
   window.DPRO_SALES674 = Object.freeze({ version: VERSION });
+})();
+/*
+ * ============================================================
+ * DPRO SALESNAVI V67.5
+ * Version: SALESNAVI-67.5-RECENT-BATCH-UNSENT-FILTER-20260820
+ *
+ * Pipeline usability add-on:
+ * - Remembers the latest candidate import batch from "候補を探す".
+ * - Shows "前回登録した候補" as a dedicated quick list.
+ * - Shows "未営業だけ" with one click.
+ * - Displays sent/unsent state, last outreach channel and next reply-check.
+ * - Can infer the most recent already-imported batch from prospect timestamps/search-run metadata
+ *   when V67.5 was installed after the import.
+ * - No Worker / SQL / DB schema change.
+ * ============================================================
+ */
+(() => {
+  'use strict';
+
+  const VERSION = 'SALESNAVI-67.5-RECENT-BATCH-UNSENT-FILTER-20260820';
+  const STORAGE_KEY = 'dpro_sales_v675_last_import_batch';
+  const MAX_INFER = 20;
+  const DETAIL_CONCURRENCY = 4;
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  let timer = null;
+  let refreshSeq = 0;
+  let currentMode = 'recent'; // recent | unsent | normal
+  let cachedRows = [];
+  let lastVisible = false;
+  let importResolveTimers = [];
+
+  function cfg() { return window.DPRO_CONFIG || {}; }
+
+  function session() {
+    try {
+      return JSON.parse(localStorage.getItem(cfg().sessionStorageKey || 'dpro_sales_session_v3') || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function token() { return session()?.token || ''; }
+
+  function safeParse(text, fallback = null) {
+    try { return JSON.parse(text); } catch { return fallback; }
+  }
+
+  function loadStoredBatch() {
+    try {
+      const data = safeParse(localStorage.getItem(STORAGE_KEY) || '', null);
+      return data && typeof data === 'object' ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveStoredBatch(batch) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(batch)); } catch {}
+  }
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function arr(v) { return Array.isArray(v) ? v : []; }
+
+  async function request(path) {
+    const headers = { Accept: 'application/json' };
+    if (token()) headers.Authorization = `Bearer ${token()}`;
+    const res = await fetch(String(cfg().apiBaseUrl || '') + path, {
+      method: 'GET',
+      headers,
+      credentials: 'omit',
+      cache: 'no-store'
+    });
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.message || data.error || `APIエラー (${res.status})`);
+    }
+    return data;
+  }
+
+  function toast(message, type = 'success') {
+    const stack = $('#toastStack');
+    if (stack) {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      stack.appendChild(el);
+      setTimeout(() => el.remove(), 5200);
+      return;
+    }
+    console[type === 'error' ? 'error' : 'log']('[V67.5]', message);
+  }
+
+  function normalizeName(v) {
+    return String(v || '').toLowerCase().replace(/\s+/g, '').replace(/[‐‑‒–—―ー\-・･]/g, '');
+  }
+
+  function normalizeAddress(v) {
+    return String(v || '').toLowerCase().replace(/\s+/g, '').replace(/[〒,，]/g, '');
+  }
+
+  function prospectPlaceId(p) {
+    return String(
+      p?.google_place_id ??
+      p?.googlePlaceId ??
+      p?.place_id ??
+      p?.placeId ??
+      p?.source_place_id ??
+      p?.sourcePlaceId ??
+      ''
+    );
+  }
+
+  function prospectTimeText(p) {
+    return String(
+      p?.imported_at ??
+      p?.importedAt ??
+      p?.registered_at ??
+      p?.registeredAt ??
+      p?.created_at ??
+      p?.createdAt ??
+      p?.inserted_at ??
+      p?.insertedAt ??
+      ''
+    );
+  }
+
+  function prospectTimeMs(p) {
+    const n = Date.parse(prospectTimeText(p));
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function prospectRunKey(p) {
+    return String(
+      p?.search_run_id ??
+      p?.searchRunId ??
+      p?.source_search_run_id ??
+      p?.sourceSearchRunId ??
+      p?.import_run_id ??
+      p?.importRunId ??
+      p?.source_run_id ??
+      p?.sourceRunId ??
+      ''
+    );
+  }
+
+  function prospectName(p) {
+    return String(p?.business_name ?? p?.businessName ?? p?.name ?? '');
+  }
+
+  function prospectAddress(p) {
+    return String(p?.address ?? p?.formatted_address ?? p?.formattedAddress ?? p?.area ?? '');
+  }
+
+  function activityTimeMs(a) {
+    const raw = a?.activity_at ?? a?.occurred_at ?? a?.created_at ?? a?.updated_at ?? '';
+    const n = Date.parse(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function outreachChannel(a) {
+    const code = String(a?.result_code || '');
+    const summary = String(a?.summary || '');
+    const meta = a?.metadata || a?.metadata_json || {};
+    const ch = String(meta?.channel || '');
+
+    if (ch === 'line_official' || code === 'outreach_line_official_sent' || /LINE公式/.test(summary)) return 'LINE公式';
+    if (ch === 'instagram' || code === 'outreach_instagram_sent' || /Instagram DM/.test(summary)) return 'Instagram DM';
+    if (ch === 'contact' || code === 'outreach_contact_sent' || /CONTACT/.test(summary)) return 'CONTACT';
+    if (ch === 'line_existing' || code === 'outreach_line_existing_sent' || /既存関係LINE/.test(summary)) return '個人LINE';
+    if (ch === 'other' || code === 'outreach_other_sent' || /公開窓口/.test(summary)) return 'その他公開窓口';
+    if (/^outreach_/.test(code)) return '営業送信';
+    return '';
+  }
+
+  function outreachInfo(detail) {
+    const acts = arr(detail?.activities)
+      .map(a => ({ a, channel: outreachChannel(a), time: activityTimeMs(a) }))
+      .filter(x => x.channel)
+      .sort((x, y) => y.time - x.time);
+
+    const latest = acts[0] || null;
+    const next = arr(detail?.nextActions)
+      .filter(a =>
+        ['pending', 'snoozed'].includes(String(a?.status || '')) &&
+        String(a?.action_type || '') === 'reply_check'
+      )
+      .sort((a, b) => String(a?.due_date || '').localeCompare(String(b?.due_date || '')))[0] || null;
+
+    return {
+      sent: acts.length > 0,
+      channel: latest?.channel || '',
+      sentAt: latest?.time || 0,
+      nextDate: String(next?.due_date || ''),
+      nextDescription: String(next?.description || '')
+    };
+  }
+
+  function fmtDate(v) {
+    if (!v) return '';
+    try {
+      return new Intl.DateTimeFormat('ja-JP', {
+        month: 'numeric',
+        day: 'numeric',
+        weekday: 'short'
+      }).format(new Date(`${String(v).slice(0, 10)}T00:00:00+09:00`));
+    } catch {
+      return String(v);
+    }
+  }
+
+  function captureSelectedImport() {
+    const checks = $$('#searchResults .result-check:checked:not(:disabled)');
+    if (!checks.length) return;
+
+    const entries = checks.map(ch => {
+      const row = ch.closest('tr');
+      return {
+        placeId: String(ch.value || ''),
+        name: row?.querySelector('.business-cell strong')?.textContent?.trim() || '',
+        address: row?.querySelector('.business-cell small')?.textContent?.trim() || ''
+      };
+    });
+
+    const pending = {
+      version: VERSION,
+      capturedAt: new Date().toISOString(),
+      source: 'candidate-import',
+      pending: true,
+      entries,
+      prospectIds: []
+    };
+    saveStoredBatch(pending);
+
+    importResolveTimers.forEach(clearTimeout);
+    importResolveTimers = [
+      setTimeout(resolveStoredBatch, 1200),
+      setTimeout(resolveStoredBatch, 2600),
+      setTimeout(resolveStoredBatch, 5200)
+    ];
+  }
+
+  function matchStoredEntries(prospects, stored) {
+    const entries = arr(stored?.entries);
+    if (!entries.length) return [];
+
+    const byPlace = new Map();
+    const byName = new Map();
+
+    prospects.forEach(p => {
+      const pid = prospectPlaceId(p);
+      if (pid) byPlace.set(pid, p);
+      const nk = normalizeName(prospectName(p));
+      if (nk) {
+        if (!byName.has(nk)) byName.set(nk, []);
+        byName.get(nk).push(p);
+      }
+    });
+
+    const matched = [];
+    const seen = new Set();
+
+    for (const e of entries) {
+      let p = e.placeId ? byPlace.get(String(e.placeId)) : null;
+
+      if (!p && e.name) {
+        const candidates = byName.get(normalizeName(e.name)) || [];
+        if (candidates.length === 1) p = candidates[0];
+        else if (candidates.length > 1 && e.address) {
+          const ea = normalizeAddress(e.address);
+          p = candidates.find(x => {
+            const pa = normalizeAddress(prospectAddress(x));
+            return pa && ea && (pa.includes(ea) || ea.includes(pa));
+          }) || candidates[0];
+        }
+      }
+
+      if (p?.id && !seen.has(String(p.id))) {
+        seen.add(String(p.id));
+        matched.push(p);
+      }
+    }
+
+    return matched;
+  }
+
+  function inferLatestBatch(prospects) {
+    const timed = prospects
+      .filter(p => p?.id && prospectTimeMs(p) > 0)
+      .sort((a, b) => prospectTimeMs(b) - prospectTimeMs(a));
+
+    if (!timed.length) return [];
+
+    const newest = timed[0];
+    const runKey = prospectRunKey(newest);
+
+    if (runKey) {
+      const sameRun = timed.filter(p => prospectRunKey(p) === runKey).slice(0, MAX_INFER);
+      if (sameRun.length) return sameRun;
+    }
+
+    // Search imports are normally inserted together within seconds.
+    // Use a conservative 20-minute cluster around the newest registration.
+    const newestMs = prospectTimeMs(newest);
+    const cluster = timed.filter(p => newestMs - prospectTimeMs(p) <= 20 * 60 * 1000).slice(0, MAX_INFER);
+    if (cluster.length) return cluster;
+
+    return timed.slice(0, Math.min(5, MAX_INFER));
+  }
+
+  async function loadProspects() {
+    const d = await request('/api/prospects?limit=500&order=score');
+    return arr(d.prospects);
+  }
+
+  async function resolveStoredBatch() {
+    try {
+      const stored = loadStoredBatch();
+      if (!stored?.pending) return;
+      const prospects = await loadProspects();
+      const matched = matchStoredEntries(prospects, stored);
+      if (!matched.length) return;
+
+      const next = {
+        ...stored,
+        pending: matched.length < arr(stored.entries).length,
+        resolvedAt: new Date().toISOString(),
+        prospectIds: matched.map(p => String(p.id))
+      };
+      saveStoredBatch(next);
+
+      if ($('#view-pipeline')?.classList.contains('active')) refresh(true);
+    } catch (e) {
+      console.warn('[V67.5] resolve import batch', e);
+    }
+  }
+
+  async function mapLimit(items, limit, fn) {
+    const out = new Array(items.length);
+    let next = 0;
+
+    async function worker() {
+      while (true) {
+        const index = next++;
+        if (index >= items.length) return;
+        try { out[index] = await fn(items[index], index); }
+        catch (e) { out[index] = { __error: e }; }
+      }
+    }
+
+    const count = Math.min(Math.max(1, limit), items.length || 1);
+    await Promise.all(Array.from({ length: count }, worker));
+    return out;
+  }
+
+  async function enrichRows(batch) {
+    const details = await mapLimit(batch, DETAIL_CONCURRENCY, async p => {
+      const d = await request(`/api/prospects/${encodeURIComponent(p.id)}/sales-detail`);
+      return d;
+    });
+
+    return batch.map((p, i) => {
+      const detail = details[i]?.__error ? null : details[i];
+      const info = outreachInfo(detail);
+      return {
+        id: String(p.id),
+        name: prospectName(p) || '店舗名未取得',
+        address: prospectAddress(p),
+        priority: String(p?.manual_priority_grade || p?.priority_grade || ''),
+        stage: String(p?.pipeline_stage || ''),
+        registeredAt: prospectTimeText(p),
+        ...info,
+        detailError: Boolean(details[i]?.__error)
+      };
+    });
+  }
+
+  function ensureStyle() {
+    if ($('#sales675Style')) return;
+    const s = document.createElement('style');
+    s.id = 'sales675Style';
+    s.textContent = `
+      .sales675-panel{
+        margin:0 0 16px;border:2px solid #74c7a7;background:linear-gradient(180deg,#f7fcfa,#edf9f4);
+        border-radius:16px;padding:15px;box-shadow:0 4px 16px rgba(15,35,61,.04)
+      }
+      .sales675-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+      .sales675-head h3{margin:0;color:#087553;font-size:17px}
+      .sales675-head p{margin:5px 0 0;color:#637589;font-size:11px;line-height:1.6}
+      .sales675-ver{font-size:10px;color:#477466;background:#fff;border:1px solid #cce8dd;padding:5px 8px;border-radius:999px}
+      .sales675-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+      .sales675-stat{background:#fff;border:1px solid #d9ebe3;border-radius:11px;padding:10px}
+      .sales675-stat small{display:block;color:#748697;font-size:10px}
+      .sales675-stat b{display:block;margin-top:3px;color:#28493d;font-size:18px}
+      .sales675-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:11px}
+      .sales675-actions button{
+        border:1px solid #cbd9e3;background:#fff;color:#30485f;border-radius:10px;padding:9px 12px;
+        font:inherit;font-size:11px;font-weight:800;cursor:pointer
+      }
+      .sales675-actions button.active{border-color:#15906c;background:#0f8b67;color:#fff}
+      .sales675-actions button.refresh{margin-left:auto}
+      .sales675-list{display:grid;gap:8px;margin-top:12px}
+      .sales675-row{
+        display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
+        background:#fff;border:1px solid #dbe6ec;border-radius:12px;padding:11px 12px
+      }
+      .sales675-row.sent{border-left:4px solid #45a986}.sales675-row.unsent{border-left:4px solid #e7a72d}
+      .sales675-row strong{display:block;font-size:13px;color:#1c334b}
+      .sales675-row .addr{display:block;margin-top:3px;color:#7a8998;font-size:9px;line-height:1.45}
+      .sales675-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
+      .sales675-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:800;background:#eef3f7;color:#53677b}
+      .sales675-pill.ok{background:#e8f7f0;color:#087553}.sales675-pill.wait{background:#fff4dd;color:#8d5a05}
+      .sales675-open{
+        border:1px solid #afd8c9;background:#f1faf6;color:#087553;border-radius:9px;padding:8px 10px;
+        font:inherit;font-size:10px;font-weight:850;cursor:pointer;white-space:nowrap
+      }
+      .sales675-empty{margin-top:12px;padding:22px 12px;text-align:center;border:1px dashed #cad9e2;border-radius:12px;background:#fff;color:#718295;font-size:11px;line-height:1.7}
+      .sales675-note{margin-top:9px;color:#718295;font-size:9px;line-height:1.55}
+      #kanban.sales675-hidden{display:none!important}
+      @media(max-width:700px){
+        .sales675-summary{grid-template-columns:1fr}
+        .sales675-row{grid-template-columns:1fr}
+        .sales675-open{width:100%}
+        .sales675-actions button.refresh{margin-left:0}
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function ensurePanel() {
+    const view = $('#view-pipeline');
+    const kanban = $('#kanban');
+    if (!view || !kanban) return null;
+
+    let panel = $('#sales675Panel');
+    if (panel) return panel;
+
+    panel = document.createElement('section');
+    panel.id = 'sales675Panel';
+    panel.className = 'sales675-panel';
+    panel.innerHTML = `
+      <div class="sales675-head">
+        <div>
+          <h3>前回登録した候補</h3>
+          <p>前回まとめて登録した店舗を、営業済み／未営業まで含めてすぐ確認できます。</p>
+        </div>
+        <span class="sales675-ver">V67.5</span>
+      </div>
+      <div class="sales675-summary">
+        <div class="sales675-stat"><small>前回登録</small><b data-sales675-total>—</b></div>
+        <div class="sales675-stat"><small>未営業</small><b data-sales675-unsent>—</b></div>
+        <div class="sales675-stat"><small>営業済み</small><b data-sales675-sent>—</b></div>
+      </div>
+      <div class="sales675-actions">
+        <button type="button" data-sales675-mode="recent">前回登録を表示</button>
+        <button type="button" data-sales675-mode="unsent">未営業だけ</button>
+        <button type="button" data-sales675-mode="normal">通常のパイプライン</button>
+        <button type="button" class="refresh" data-sales675-refresh>状態を更新</button>
+      </div>
+      <div class="sales675-list" data-sales675-list></div>
+      <div class="sales675-note" data-sales675-note>読み込み中…</div>
+    `;
+    kanban.insertAdjacentElement('beforebegin', panel);
+
+    panel.addEventListener('click', e => {
+      const modeBtn = e.target.closest('[data-sales675-mode]');
+      if (modeBtn) {
+        currentMode = modeBtn.dataset.sales675Mode || 'recent';
+        render();
+        return;
+      }
+
+      if (e.target.closest('[data-sales675-refresh]')) {
+        refresh(true);
+        return;
+      }
+
+      const open = e.target.closest('[data-sales675-open]');
+      if (open?.dataset.sales675Open) {
+        // Use the native owner's data-prospect click contract.
+        const bridge = document.createElement('button');
+        bridge.type = 'button';
+        bridge.dataset.prospect = open.dataset.sales675Open;
+        bridge.style.display = 'none';
+        panel.appendChild(bridge);
+        bridge.click();
+        bridge.remove();
+      }
+    });
+
+    return panel;
+  }
+
+  function render() {
+    const panel = ensurePanel();
+    const kanban = $('#kanban');
+    if (!panel || !kanban) return;
+
+    const total = cachedRows.length;
+    const unsent = cachedRows.filter(x => !x.sent).length;
+    const sent = total - unsent;
+
+    panel.querySelector('[data-sales675-total]').textContent = String(total);
+    panel.querySelector('[data-sales675-unsent]').textContent = String(unsent);
+    panel.querySelector('[data-sales675-sent]').textContent = String(sent);
+
+    $$('[data-sales675-mode]', panel).forEach(b => {
+      b.classList.toggle('active', b.dataset.sales675Mode === currentMode);
+    });
+
+    const list = panel.querySelector('[data-sales675-list]');
+    const note = panel.querySelector('[data-sales675-note]');
+
+    if (currentMode === 'normal') {
+      kanban.classList.remove('sales675-hidden');
+      list.innerHTML = '';
+      note.textContent = total
+        ? `前回登録 ${total}件を記憶しています。「前回登録を表示」または「未営業だけ」でいつでも戻れます。`
+        : '通常の営業パイプラインを表示しています。';
+      return;
+    }
+
+    kanban.classList.add('sales675-hidden');
+    const rows = currentMode === 'unsent' ? cachedRows.filter(x => !x.sent) : cachedRows;
+
+    if (!rows.length) {
+      list.innerHTML = `<div class="sales675-empty">${
+        total
+          ? (currentMode === 'unsent'
+              ? '前回登録した候補はすべて営業済みです。<br>次に「候補を探す」から新しい店舗を登録すると、この一覧が自動で切り替わります。'
+              : '前回登録した候補がありません。')
+          : '前回登録した候補をまだ特定できません。<br>次回「候補を探す」からまとめて登録すると自動で記憶します。'
+      }</div>`;
+    } else {
+      list.innerHTML = rows.map(r => {
+        const status = r.sent ? '営業済み' : '未営業';
+        const follow = r.nextDate
+          ? `次回 ${fmtDate(r.nextDate)} ${r.nextDescription || '反応・返信確認'}`
+          : '';
+        return `
+          <div class="sales675-row ${r.sent ? 'sent' : 'unsent'}">
+            <div>
+              <strong>${r.sent ? '✅' : '▶'} ${esc(r.name)}</strong>
+              ${r.address ? `<span class="addr">${esc(r.address)}</span>` : ''}
+              <div class="sales675-meta">
+                <span class="sales675-pill ${r.sent ? 'ok' : 'wait'}">${status}</span>
+                ${r.priority ? `<span class="sales675-pill">優先度 ${esc(r.priority)}</span>` : ''}
+                ${r.channel ? `<span class="sales675-pill">${esc(r.channel)}</span>` : ''}
+                ${follow ? `<span class="sales675-pill">${esc(follow)}</span>` : ''}
+                ${r.detailError ? `<span class="sales675-pill wait">状態取得要確認</span>` : ''}
+              </div>
+            </div>
+            <button type="button" class="sales675-open" data-sales675-open="${esc(r.id)}">店舗営業詳細を開く</button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    note.textContent = currentMode === 'unsent'
+      ? `未営業 ${unsent}件だけを表示しています。店舗を開けば、そのままV67.4のCONTACT中心営業ナビで営業できます。`
+      : `前回登録した ${total}件を表示しています。営業済みは✅、未営業は▶で表示します。`;
+  }
+
+  async function refresh(force = false) {
+    const seq = ++refreshSeq;
+    const panel = ensurePanel();
+    if (!panel) return;
+
+    const note = panel.querySelector('[data-sales675-note]');
+    if (note) note.textContent = '前回登録候補と営業状態を確認しています…';
+
+    try {
+      const prospects = await loadProspects();
+      if (seq !== refreshSeq) return;
+
+      const stored = loadStoredBatch();
+      let batch = [];
+
+      if (stored?.prospectIds?.length) {
+        const idSet = new Set(stored.prospectIds.map(String));
+        batch = prospects.filter(p => idSet.has(String(p.id)));
+
+        // Preserve original import order when possible.
+        const order = new Map(stored.prospectIds.map((id, i) => [String(id), i]));
+        batch.sort((a, b) => (order.get(String(a.id)) ?? 9999) - (order.get(String(b.id)) ?? 9999));
+      }
+
+      if (!batch.length && stored?.entries?.length) {
+        batch = matchStoredEntries(prospects, stored);
+        if (batch.length) {
+          saveStoredBatch({
+            ...stored,
+            pending: false,
+            resolvedAt: new Date().toISOString(),
+            prospectIds: batch.map(p => String(p.id))
+          });
+        }
+      }
+
+      if (!batch.length) {
+        batch = inferLatestBatch(prospects);
+        if (batch.length) {
+          saveStoredBatch({
+            version: VERSION,
+            capturedAt: new Date().toISOString(),
+            source: 'inferred-latest-batch',
+            pending: false,
+            entries: batch.map(p => ({
+              placeId: prospectPlaceId(p),
+              name: prospectName(p),
+              address: prospectAddress(p)
+            })),
+            prospectIds: batch.map(p => String(p.id))
+          });
+        }
+      }
+
+      const rows = batch.length ? await enrichRows(batch) : [];
+      if (seq !== refreshSeq) return;
+
+      cachedRows = rows;
+      render();
+    } catch (e) {
+      if (seq !== refreshSeq) return;
+      cachedRows = [];
+      render();
+      if (note) note.textContent = `前回登録候補を取得できませんでした：${e.message || '通信エラー'}`;
+      console.warn('[V67.5] refresh', e);
+    }
+  }
+
+  function pipelineVisible() {
+    return Boolean($('#view-pipeline')?.classList.contains('active'));
+  }
+
+  function pulse() {
+    const visible = pipelineVisible();
+
+    if (visible) {
+      ensurePanel();
+      if (!lastVisible) {
+        lastVisible = true;
+        refresh(false);
+      }
+    } else {
+      lastVisible = false;
+    }
+  }
+
+  function bindImportCapture() {
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('#importSelectedBtn');
+      if (!btn || btn.disabled) return;
+      captureSelectedImport();
+    }, true);
+  }
+
+  function start() {
+    ensureStyle();
+    bindImportCapture();
+
+    if (timer) clearInterval(timer);
+    timer = setInterval(pulse, 350);
+    pulse();
+
+    document.documentElement.dataset.sales675 = VERSION;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.DPRO_SALES675 = Object.freeze({
+    version: VERSION,
+    refresh: () => refresh(true),
+    getLastBatch: () => loadStoredBatch()
+  });
 })();
