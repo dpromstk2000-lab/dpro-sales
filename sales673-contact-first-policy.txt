@@ -1,4 +1,8 @@
 /*
+ * DPRO SALESNAVI V67.7 PACKAGE
+ * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-batch view +
+ * V67.6 pipeline sales-state filter + V67.7 proposal-LP auto-link fix.
+ *
  * DPRO SALESNAVI V67.6 PACKAGE
  * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-batch view + V67.6 pipeline sales-state filter.
  *
@@ -1757,5 +1761,408 @@ DPRO SHOP`;
     version: VERSION,
     refresh: () => refreshData(true),
     setMode
+  });
+})();
+
+/*
+ * ============================================================
+ * DPRO SALESNAVI V67.7
+ * Version: SALESNAVI-67.7-PROPOSAL-LP-AUTO-LINK-FIX-20260820
+ *
+ * Proposal LP auto-link FIX:
+ * - Resolves the official DPRO product assigned to the open prospect.
+ * - Uses the PRODUCT SITE central master (window.DPROSystemsData) as source of truth.
+ * - Falls back to the already-rendered CENTRAL "提案LP" link when available.
+ * - Injects one canonical hidden LP link so the existing V67.2/V67.4 lpHref()
+ *   functions can keep working without rewriting the older sales-flow logic.
+ * - Enables "提案LPを確認" after the LP is resolved.
+ * - Replaces "【提案LP URL】" in the current sales message automatically.
+ * - Future channel changes also use the resolved LP because the old lpHref()
+ *   sees the canonical hidden link.
+ * - Displays "LP自動連動：<CODE>" for quick visual verification.
+ * - If the official product is resolved but has no lpUrl, shows "提案LP未登録".
+ * - No Worker / SQL / DB schema change.
+ * ============================================================
+ */
+(() => {
+  'use strict';
+
+  const VERSION = 'SALESNAVI-67.7-PROPOSAL-LP-AUTO-LINK-FIX-20260820';
+  const PRODUCT_BASE = 'https://dpromstk2000-lab.github.io/dpro-line-systems-site/';
+  const SOURCE_ATTR = 'data-sales677-lp-source';
+  const STATUS_ATTR = 'data-sales677-lp-status';
+  const PLACEHOLDER = '【提案LP URL】';
+
+  let pulseTimer = null;
+  let lastSignature = '';
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  function abs(value) {
+    if (!value) return '';
+    try { return new URL(String(value), PRODUCT_BASE).href; }
+    catch { return String(value || ''); }
+  }
+
+  function norm(value) {
+    return String(value || '')
+      .normalize('NFKC')
+      .toLocaleLowerCase('ja')
+      .replace(/dpro|line|systems?|システム|業種別|提案|向け|営業支援|営業ナビ/g, '')
+      .replace(/[・･／/（）()【】［］\[\]\s_\-]/g, '');
+  }
+
+  function drawer() {
+    return $('#drawerBody');
+  }
+
+  function salesRoot() {
+    return $('#sales672');
+  }
+
+  function officialProductLabel(root) {
+    if (!root) return '';
+
+    const boxes = $$('.detail-box', root);
+    const box = boxes.find(b =>
+      /提案するDPROシステム/.test(b.querySelector('h4')?.textContent || '')
+    );
+    if (box) {
+      const strong = box.querySelector('p b, b');
+      if (strong?.textContent?.trim()) return strong.textContent.trim();
+
+      const lines = String(box.innerText || '')
+        .split(/\n+/)
+        .map(x => x.trim())
+        .filter(Boolean);
+      const idx = lines.findIndex(x => /提案するDPROシステム/.test(x));
+      const next = idx >= 0 ? lines.slice(idx + 1).find(x => /^DPRO/i.test(x)) : '';
+      if (next) return next;
+    }
+
+    // Fallback used by the existing CENTRAL material enhancer.
+    const official = root.querySelector('.dpro58-official-product');
+    return official?.textContent?.trim() || '';
+  }
+
+  function explicitProductCode(root) {
+    if (!root) return '';
+    const code = root.querySelector(
+      '.dpro60-material-head .dpro57-product-code,' +
+      '[data-product-code],[data-system-code],.dpro57-product-code'
+    );
+    return String(
+      code?.getAttribute?.('data-product-code') ||
+      code?.getAttribute?.('data-system-code') ||
+      code?.textContent ||
+      ''
+    ).trim().toUpperCase();
+  }
+
+  function systemByLabel(label) {
+    const data = window.DPROSystemsData;
+    const systems = Array.isArray(data?.systems) ? data.systems : [];
+    if (!systems.length) return null;
+
+    const raw = String(label || '').trim();
+    if (!raw) return null;
+
+    // Exact code in label wins.
+    const upper = raw.toUpperCase();
+    for (const system of systems) {
+      const code = String(system?.code || '').toUpperCase();
+      if (!code) continue;
+      const escaped = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (new RegExp(`(^|[^A-Z0-9])${escaped}([^A-Z0-9]|$)`).test(upper)) {
+        return system;
+      }
+    }
+
+    const key = norm(raw);
+    if (!key) return null;
+
+    const rows = [];
+    for (const system of systems) {
+      const values = new Set([
+        system?.code,
+        system?.assetSlug,
+        system?.name,
+        ...(Array.isArray(system?.targets) ? system.targets : [])
+      ].filter(Boolean));
+
+      // Keep the same important aliases used by SalesNavi CENTRAL material logic.
+      if (system?.code === 'CONSULT') values.add('社労士');
+      if (system?.code === 'KSH') values.add('車検');
+      if (system?.code === 'PETSALON') values.add('ペットサロン');
+      if (system?.code === 'SALESNAVI') values.add('営業ナビ');
+
+      for (const value of values) {
+        const alias = norm(value);
+        if (alias) rows.push({ system, alias });
+      }
+    }
+
+    rows.sort((a, b) => b.alias.length - a.alias.length);
+
+    const exact = rows.find(x => x.alias === key);
+    if (exact) return exact.system;
+
+    const contained = rows.find(x => {
+      if (x.alias.length < 4) return false;
+      if (x.system?.code === 'SALON' && x.alias === 'salon') return false;
+      return key.includes(x.alias);
+    });
+    return contained?.system || null;
+  }
+
+  function systemByCode(code) {
+    const data = window.DPROSystemsData;
+    if (!code || !data) return null;
+    if (typeof data.getByCode === 'function') return data.getByCode(code);
+    return (data.systems || []).find(
+      s => String(s?.code || '').toUpperCase() === String(code).toUpperCase()
+    ) || null;
+  }
+
+  function centralRenderedLp(root) {
+    if (!root) return null;
+
+    // Prefer the CENTRAL detail-material block.
+    const links = $$('a[href]', root);
+    const a = links.find(link => {
+      if (link.hasAttribute(SOURCE_ATTR)) return false;
+      const text = String(link.textContent || '').trim();
+      return /^(提案LP|営業LP)$/.test(text) ||
+             link.matches('.dpro60-material-actions a.primary');
+    });
+
+    if (!a?.href) return null;
+
+    const code = explicitProductCode(root);
+    return {
+      url: a.href,
+      code,
+      system: code ? systemByCode(code) : null,
+      source: 'rendered-central'
+    };
+  }
+
+  function resolveLp(root) {
+    if (!root) return null;
+
+    // 1) If the CENTRAL material enhancer has already rendered the LP, use it.
+    const rendered = centralRenderedLp(root);
+    if (rendered?.url) return rendered;
+
+    // 2) Resolve directly from PRODUCT SITE central master.
+    const code = explicitProductCode(root);
+    let system = code ? systemByCode(code) : null;
+
+    const label = officialProductLabel(root);
+    if (!system && label) system = systemByLabel(label);
+
+    if (!system) return {
+      url: '',
+      code: code || '',
+      label,
+      system: null,
+      source: 'unresolved'
+    };
+
+    return {
+      url: abs(system.lpUrl),
+      code: String(system.code || ''),
+      label,
+      system,
+      source: 'central-master'
+    };
+  }
+
+  function ensureCanonicalSource(root, resolved) {
+    if (!root || !resolved?.url) return;
+
+    let a = root.querySelector(`[${SOURCE_ATTR}]`);
+    if (!a) {
+      a = document.createElement('a');
+      a.setAttribute(SOURCE_ATTR, '1');
+      a.style.display = 'none';
+      a.setAttribute('aria-hidden', 'true');
+      a.tabIndex = -1;
+
+      // Prepend so the legacy lpHref() finds this canonical source before any
+      // stale/native LP link that might appear later in the drawer.
+      root.prepend(a);
+    }
+
+    a.href = resolved.url;
+    a.textContent = '提案LP';
+    a.dataset.productCode = resolved.code || '';
+    a.dataset.source = resolved.source || '';
+  }
+
+  function ensureStatus(root) {
+    if (!root) return null;
+    const openRow = root.querySelector('.sales672-open');
+    if (!openRow) return null;
+
+    let el = openRow.querySelector(`[${STATUS_ATTR}]`);
+    if (!el) {
+      el = document.createElement('span');
+      el.setAttribute(STATUS_ATTR, '1');
+      el.className = 'sales677-lp-status';
+      openRow.appendChild(el);
+    }
+    return el;
+  }
+
+  function ensureStyle() {
+    if ($('#sales677Style')) return;
+    const s = document.createElement('style');
+    s.id = 'sales677Style';
+    s.textContent = `
+      #sales672 .sales677-lp-ready{
+        border-color:#75c6a7!important;
+        background:#f0faf6!important;
+        color:#087553!important;
+        box-shadow:inset 0 0 0 1px rgba(15,139,103,.04)
+      }
+      #sales672 .sales677-lp-missing{
+        border-color:#e3c576!important;
+        background:#fff9e9!important;
+        color:#805b12!important
+      }
+      #sales672 .sales677-lp-status{
+        display:inline-flex;align-items:center;min-height:34px;
+        border:1px solid #cde7dc;background:#f5fcf9;color:#087553;
+        border-radius:9px;padding:7px 9px;font-size:10px;font-weight:850;
+        line-height:1.25
+      }
+      #sales672 .sales677-lp-status.wait{
+        border-color:#dce4ea;background:#f7fafc;color:#718195
+      }
+      #sales672 .sales677-lp-status.missing{
+        border-color:#ecd899;background:#fff9e9;color:#805b12
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function patchTemplate(root, url) {
+    if (!root || !url) return;
+    const ta = root.querySelector('[data-template]');
+    if (!ta) return;
+
+    const before = String(ta.value || '');
+    if (!before.includes(PLACEHOLDER)) return;
+
+    ta.value = before.split(PLACEHOLDER).join(url);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function patchButton(root, resolved) {
+    if (!root) return;
+    const button = root.querySelector('[data-open-lp]');
+    const status = ensureStatus(root);
+    if (!button) return;
+
+    button.classList.remove('sales677-lp-ready', 'sales677-lp-missing');
+
+    if (resolved?.url) {
+      button.disabled = false;
+      button.textContent = '提案LPを確認';
+      button.title = resolved.code
+        ? `提案LP自動連動：${resolved.code}`
+        : '提案LP自動連動済み';
+      button.classList.add('sales677-lp-ready');
+      button.dataset.sales677LpHref = resolved.url;
+
+      if (status) {
+        status.className = 'sales677-lp-status';
+        status.textContent = `LP自動連動：${resolved.code || 'OK'}`;
+        status.title = resolved.url;
+      }
+      return;
+    }
+
+    delete button.dataset.sales677LpHref;
+
+    // Only show "未登録" once the official product itself was resolved.
+    if (resolved?.system && !resolved.url) {
+      button.disabled = true;
+      button.textContent = '提案LP未登録';
+      button.classList.add('sales677-lp-missing');
+      if (status) {
+        status.className = 'sales677-lp-status missing';
+        status.textContent = `LP未登録：${resolved.code || '商品確認済み'}`;
+      }
+    } else if (status) {
+      status.className = 'sales677-lp-status wait';
+      status.textContent = 'LP確認中…';
+    }
+  }
+
+  function patchVersion(root) {
+    const chip = root?.querySelector('.sales672-ver');
+    if (chip) {
+      chip.textContent = 'V67.7';
+      chip.title = '提案LP自動連動FIX';
+    }
+  }
+
+  function patchOnce() {
+    const d = drawer();
+    const root = salesRoot();
+    if (!d || !root || !root.dataset.prospectId) {
+      lastSignature = '';
+      return;
+    }
+
+    ensureStyle();
+    patchVersion(root);
+
+    const resolved = resolveLp(d);
+    const signature = [
+      root.dataset.prospectId || '',
+      resolved?.code || '',
+      resolved?.url || '',
+      resolved?.source || ''
+    ].join('|');
+
+    if (resolved?.url) {
+      ensureCanonicalSource(d, resolved);
+      patchButton(root, resolved);
+      patchTemplate(root, resolved.url);
+    } else {
+      patchButton(root, resolved);
+    }
+
+    lastSignature = signature;
+    document.documentElement.dataset.sales677 = VERSION;
+  }
+
+  function start() {
+    ensureStyle();
+
+    if (pulseTimer) clearInterval(pulseTimer);
+    pulseTimer = setInterval(() => {
+      try { patchOnce(); } catch (e) {
+        console.warn('[V67.7] proposal LP patch', e);
+      }
+    }, 280);
+
+    // Immediate first pass.
+    try { patchOnce(); } catch {}
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.DPRO_SALES677 = Object.freeze({
+    version: VERSION,
+    refresh: () => patchOnce()
   });
 })();
