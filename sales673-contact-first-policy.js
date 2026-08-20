@@ -1,4 +1,7 @@
 /*
+ * DPRO SALESNAVI V67.6 PACKAGE
+ * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-batch view + V67.6 pipeline sales-state filter.
+ *
  * DPRO SALESNAVI V67.5 PACKAGE
  * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-candidate pipeline filter.
  *
@@ -1285,5 +1288,474 @@ DPRO SHOP`;
     version: VERSION,
     refresh: () => refresh(true),
     getLastBatch: () => loadStoredBatch()
+  });
+})();
+
+/*
+ * ============================================================
+ * DPRO SALESNAVI V67.6
+ * Version: SALESNAVI-67.6-PIPELINE-SALES-STATE-FILTER-20260820
+ *
+ * Normal pipeline usability:
+ * - Adds a sales execution filter to the native pipeline:
+ *     全営業状態 / 未営業 / 営業済み
+ * - Shows an "未営業 / 営業済み" badge on every normal pipeline card.
+ * - Uses recorded sales activities plus pipeline progress to judge state.
+ * - Keeps existing search / campaign / priority / status filters working.
+ * - Hides this control while V67.5's "前回登録した候補" quick list is shown.
+ * - No Worker / SQL / DB schema change.
+ * ============================================================
+ */
+(() => {
+  'use strict';
+
+  const VERSION = 'SALESNAVI-67.6-PIPELINE-SALES-STATE-FILTER-20260820';
+  const MODE_KEY = 'dpro_sales_v676_pipeline_sales_state';
+  const REFRESH_MS = 30000;
+
+  const SENT_STAGES = new Set([
+    'visited_absent',
+    'contacted',
+    'material_delivered',
+    'demo_sent',
+    'revisit_scheduled',
+    'quote_sent',
+    'considering',
+    'won',
+    'lost'
+  ]);
+
+  const EXCLUDED_STAGES = new Set(['excluded']);
+
+  const SALES_RESULT_CODES = new Set([
+    'owner_absent',
+    'staff_only',
+    'owner_contacted',
+    'material_delivered',
+    'demo_sent',
+    'quote_sent',
+    'considering',
+    'revisit_scheduled',
+    'callback_requested',
+    'phone_no_answer',
+    'line_sent',
+    'email_sent',
+    'won',
+    'not_interested',
+    'closed',
+    'other_follow_up'
+  ]);
+
+  const SALES_ACTIVITY_TYPES = new Set([
+    'visit',
+    'phone',
+    'line',
+    'email',
+    'material',
+    'demo',
+    'quote'
+  ]);
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  let statusByProspect = new Map();
+  let loadedAt = 0;
+  let loading = false;
+  let lastPipelineVisible = false;
+  let pulseTimer = null;
+
+  function cfg() { return window.DPRO_CONFIG || {}; }
+
+  function session() {
+    try {
+      return JSON.parse(localStorage.getItem(cfg().sessionStorageKey || 'dpro_sales_session_v3') || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function token() { return session()?.token || ''; }
+
+  function safeGet(key) {
+    try { return localStorage.getItem(key) || ''; } catch { return ''; }
+  }
+
+  function safeSet(key, value) {
+    try { localStorage.setItem(key, String(value ?? '')); } catch {}
+  }
+
+  function arr(v) { return Array.isArray(v) ? v : []; }
+
+  function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function currentMode() {
+    const v = safeGet(MODE_KEY);
+    return ['all', 'unsent', 'sent'].includes(v) ? v : 'all';
+  }
+
+  function setMode(v) {
+    const next = ['all', 'unsent', 'sent'].includes(v) ? v : 'all';
+    safeSet(MODE_KEY, next);
+    const sel = $('#sales676Filter');
+    if (sel && sel.value !== next) sel.value = next;
+    applyFilter();
+  }
+
+  async function request(path) {
+    const headers = { Accept: 'application/json' };
+    if (token()) headers.Authorization = `Bearer ${token()}`;
+    const res = await fetch(String(cfg().apiBaseUrl || '') + path, {
+      method: 'GET',
+      headers,
+      credentials: 'omit',
+      cache: 'no-store'
+    });
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.message || data.error || `APIエラー (${res.status})`);
+    }
+    return data;
+  }
+
+  function toast(message, type = 'success') {
+    const stack = $('#toastStack');
+    if (stack) {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      stack.appendChild(el);
+      setTimeout(() => el.remove(), 4800);
+      return;
+    }
+    console[type === 'error' ? 'error' : 'log']('[V67.6]', message);
+  }
+
+  function isSalesActivity(a) {
+    const code = String(a?.result_code || '');
+    const type = String(a?.activity_type || '');
+
+    if (code.startsWith('outreach_')) return true;
+    if (SALES_RESULT_CODES.has(code)) return true;
+    if (SALES_ACTIVITY_TYPES.has(type)) return true;
+
+    const meta = a?.metadata || a?.metadata_json || {};
+    if (meta?.nonPhone === true || meta?.sales672 || meta?.sales674) return true;
+
+    return false;
+  }
+
+  function classify(stage, hasSalesActivity) {
+    const s = String(stage || '');
+    if (EXCLUDED_STAGES.has(s)) return 'excluded';
+    if (hasSalesActivity || SENT_STAGES.has(s)) return 'sent';
+    return 'unsent';
+  }
+
+  async function refreshData(showToast = false) {
+    if (loading) return;
+    loading = true;
+    setLoadingUi(true);
+
+    try {
+      const [prospectRes, activityRes] = await Promise.all([
+        request('/api/prospects?limit=500&order=score'),
+        request('/api/activities?limit=1000')
+      ]);
+
+      const prospects = arr(prospectRes?.prospects);
+      const activities = arr(activityRes?.activities);
+
+      const activityProspectIds = new Set(
+        activities
+          .filter(isSalesActivity)
+          .map(a => String(a?.prospect_id || ''))
+          .filter(Boolean)
+      );
+
+      const next = new Map();
+      prospects.forEach(p => {
+        const id = String(p?.id || '');
+        if (!id) return;
+        next.set(id, classify(
+          p?.pipeline_stage,
+          activityProspectIds.has(id)
+        ));
+      });
+
+      statusByProspect = next;
+      loadedAt = Date.now();
+      applyFilter();
+      if (showToast) toast('営業状態を更新しました。');
+    } catch (e) {
+      console.warn('[V67.6] refresh', e);
+      if (showToast) toast(e.message || '営業状態を更新できませんでした。', 'error');
+    } finally {
+      loading = false;
+      setLoadingUi(false);
+    }
+  }
+
+  function ensureStyle() {
+    if ($('#sales676Style')) return;
+    const s = document.createElement('style');
+    s.id = 'sales676Style';
+    s.textContent = `
+      .sales676-filter-wrap{
+        display:inline-flex;align-items:center;gap:7px;padding:4px 5px 4px 9px;
+        border:1px solid #cfe0d9;background:#f4fbf8;border-radius:11px
+      }
+      .sales676-filter-wrap label{
+        font-size:10px;font-weight:850;color:#087553;white-space:nowrap
+      }
+      .sales676-filter-wrap select{
+        min-width:118px;border:1px solid #c8d8e2;background:#fff;border-radius:9px;
+        padding:8px 30px 8px 10px;color:#294057;font:inherit;font-size:11px;font-weight:750
+      }
+      .sales676-filter-wrap button{
+        border:1px solid #bdd7cd;background:#fff;color:#087553;border-radius:9px;
+        padding:8px 10px;font:inherit;font-size:10px;font-weight:850;cursor:pointer
+      }
+      .sales676-filter-wrap button:disabled{opacity:.55;cursor:wait}
+      .sales676-ver{
+        display:inline-flex;align-items:center;padding:4px 7px;border-radius:999px;
+        border:1px solid #cce8dd;background:#fff;color:#477466;font-size:9px;font-weight:800
+      }
+      .sales676-counts{
+        display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:8px 0 0;
+        color:#66798b;font-size:10px
+      }
+      .sales676-counts b{color:#29485c}
+      .sales676-card-state{
+        display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;
+        font-size:9px;font-weight:850;border:1px solid transparent
+      }
+      .sales676-card-state.sent{background:#e8f7f0;color:#087553;border-color:#c7eadc}
+      .sales676-card-state.unsent{background:#fff4dd;color:#8d5a05;border-color:#f0ddb5}
+      .sales676-card-state.excluded{background:#f0f2f5;color:#718092;border-color:#dde3e8}
+      .sales676-filter-hidden{display:none!important}
+      .sales676-filter-empty{
+        margin:8px;padding:18px 10px;text-align:center;border:1px dashed #d5dfe6;
+        border-radius:11px;background:#fbfcfd;color:#8190a0;font-size:10px
+      }
+      @media(max-width:820px){
+        .sales676-filter-wrap{width:100%;flex-wrap:wrap}
+        .sales676-filter-wrap select{flex:1;min-width:150px}
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  function ensureControls() {
+    const view = $('#view-pipeline');
+    const toolbar = view?.querySelector('.toolbar');
+    if (!view || !toolbar) return null;
+
+    let wrap = $('#sales676FilterWrap');
+    if (wrap) return wrap;
+
+    wrap = document.createElement('div');
+    wrap.id = 'sales676FilterWrap';
+    wrap.className = 'sales676-filter-wrap';
+    wrap.innerHTML = `
+      <label for="sales676Filter">営業実行</label>
+      <select id="sales676Filter" aria-label="営業実行状態">
+        <option value="all">全営業状態</option>
+        <option value="unsent">未営業</option>
+        <option value="sent">営業済み</option>
+      </select>
+      <button id="sales676Refresh" type="button">状態更新</button>
+      <span class="sales676-ver">V67.6</span>
+    `;
+
+    const nativeReload = $('#pipelineReload');
+    if (nativeReload) toolbar.insertBefore(wrap, nativeReload);
+    else toolbar.appendChild(wrap);
+
+    const counts = document.createElement('div');
+    counts.id = 'sales676Counts';
+    counts.className = 'sales676-counts';
+    toolbar.insertAdjacentElement('afterend', counts);
+
+    $('#sales676Filter').value = currentMode();
+    $('#sales676Filter').addEventListener('change', e => setMode(e.target.value));
+    $('#sales676Refresh').addEventListener('click', () => refreshData(true));
+
+    // Native reload/search/filter operations may re-render the kanban.
+    $('#pipelineReload')?.addEventListener('click', () => {
+      setTimeout(() => refreshData(false), 500);
+    });
+
+    ['#pipelineCampaign', '#pipelinePriority', '#pipelineStage'].forEach(sel => {
+      $(sel)?.addEventListener('change', () => {
+        setTimeout(applyFilter, 250);
+        setTimeout(applyFilter, 700);
+      });
+    });
+
+    $('#pipelineSearch')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        setTimeout(applyFilter, 350);
+        setTimeout(applyFilter, 850);
+      }
+    });
+
+    return wrap;
+  }
+
+  function setLoadingUi(flag) {
+    const btn = $('#sales676Refresh');
+    if (!btn) return;
+    btn.disabled = Boolean(flag);
+    btn.textContent = flag ? '確認中…' : '状態更新';
+  }
+
+  function pipelineQuickListActive() {
+    return $('#kanban')?.classList.contains('sales675-hidden') || false;
+  }
+
+  function updateControlVisibility() {
+    const wrap = $('#sales676FilterWrap');
+    const counts = $('#sales676Counts');
+    const hide = pipelineQuickListActive();
+    if (wrap) wrap.style.display = hide ? 'none' : '';
+    if (counts) counts.style.display = hide ? 'none' : '';
+  }
+
+  function stateLabel(state) {
+    if (state === 'sent') return '営業済み';
+    if (state === 'excluded') return '対象外';
+    return '未営業';
+  }
+
+  function decorateCard(card, state) {
+    card.classList.remove('sales676-sent', 'sales676-unsent', 'sales676-excluded');
+    card.classList.add(`sales676-${state}`);
+
+    const foot = card.querySelector('.foot') || card;
+    let badge = card.querySelector('.sales676-card-state');
+    if (!badge) {
+      badge = document.createElement('span');
+      badge.className = 'sales676-card-state';
+      foot.appendChild(badge);
+    }
+
+    badge.className = `sales676-card-state ${state}`;
+    badge.textContent = stateLabel(state);
+  }
+
+  function updateCounts(cards) {
+    let all = 0, unsent = 0, sent = 0, excluded = 0;
+
+    cards.forEach(card => {
+      all++;
+      const id = String(card.dataset.prospect || '');
+      const state = statusByProspect.get(id) || 'unsent';
+      if (state === 'sent') sent++;
+      else if (state === 'excluded') excluded++;
+      else unsent++;
+    });
+
+    const counts = $('#sales676Counts');
+    if (counts) {
+      counts.innerHTML =
+        `通常パイプライン内：<b>${all}</b>件 ／ 未営業 <b>${unsent}</b> ／ 営業済み <b>${sent}</b>` +
+        (excluded ? ` ／ 対象外 <b>${excluded}</b>` : '');
+    }
+  }
+
+  function applyFilter() {
+    const kanban = $('#kanban');
+    if (!kanban) return;
+
+    ensureControls();
+    updateControlVisibility();
+
+    if (pipelineQuickListActive()) return;
+
+    const mode = currentMode();
+    const cards = $$('#kanban .prospect-card[data-prospect]');
+    updateCounts(cards);
+
+    cards.forEach(card => {
+      const id = String(card.dataset.prospect || '');
+      const state = statusByProspect.get(id) || 'unsent';
+      decorateCard(card, state);
+
+      const show =
+        mode === 'all' ||
+        (mode === 'unsent' && state === 'unsent') ||
+        (mode === 'sent' && state === 'sent');
+
+      card.classList.toggle('sales676-filter-hidden', !show);
+    });
+
+    $$('#kanban .kanban-col').forEach(col => {
+      col.querySelectorAll('.sales676-filter-empty').forEach(x => x.remove());
+
+      const colCards = $$('.prospect-card[data-prospect]', col);
+      const visible = colCards.filter(c => !c.classList.contains('sales676-filter-hidden'));
+
+      const countBadge = col.querySelector('.kanban-title .badge');
+      if (countBadge) countBadge.textContent = String(visible.length);
+
+      if (mode !== 'all' && colCards.length && !visible.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sales676-filter-empty';
+        empty.textContent = mode === 'unsent' ? '未営業の店舗はありません' : '営業済みの店舗はありません';
+        col.appendChild(empty);
+      }
+    });
+  }
+
+  function pipelineVisible() {
+    return Boolean($('#view-pipeline')?.classList.contains('active'));
+  }
+
+  function pulse() {
+    const visible = pipelineVisible();
+
+    if (!visible) {
+      lastPipelineVisible = false;
+      return;
+    }
+
+    ensureControls();
+    updateControlVisibility();
+    applyFilter();
+
+    if (!lastPipelineVisible) {
+      lastPipelineVisible = true;
+      refreshData(false);
+      return;
+    }
+
+    if (!loading && Date.now() - loadedAt > REFRESH_MS) {
+      refreshData(false);
+    }
+  }
+
+  function start() {
+    ensureStyle();
+    pulseTimer = setInterval(pulse, 450);
+    pulse();
+    document.documentElement.dataset.sales676 = VERSION;
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.DPRO_SALES676 = Object.freeze({
+    version: VERSION,
+    refresh: () => refreshData(true),
+    setMode
   });
 })();
