@@ -1,4 +1,9 @@
 /*
+ * DPRO SALESNAVI V67.8 PACKAGE
+ * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-batch view +
+ * V67.6 pipeline sales-state filter + V67.7 proposal-LP auto-link fix +
+ * V67.8 hold-candidate / no-contact-route management.
+ *
  * DPRO SALESNAVI V67.7 PACKAGE
  * Includes V67.4 CONTACT/LINE official drawer + V67.5 recent-batch view +
  * V67.6 pipeline sales-state filter + V67.7 proposal-LP auto-link fix.
@@ -789,7 +794,40 @@ DPRO SHOP`;
     return '';
   }
 
+  const HOLD_REASON_LABELS = Object.freeze({
+    no_contact: '接触手段なし',
+    chain_hq: 'チェーン・本部営業候補',
+    existing_system: '既存システム充実',
+    timing: '時期を見て再確認',
+    other: 'その他'
+  });
+
+  function holdInfo(detail) {
+    const events = arr(detail?.activities)
+      .map(a => {
+        const code = String(a?.result_code || '');
+        const meta = a?.metadata || a?.metadata_json || {};
+        const isRelease = code === 'hold_released' || (meta?.sales678 === true && meta?.hold === false);
+        const isHold = code.startsWith('hold_') && code !== 'hold_released' || (meta?.sales678 === true && meta?.hold === true);
+        if (!isHold && !isRelease) return null;
+        const reason = String(meta?.holdReason || (code.startsWith('hold_') && code !== 'hold_released' ? code.slice(5) : ''));
+        return { isHold, isRelease, reason, time: activityTimeMs(a) };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.time - a.time);
+
+    const latest = events[0] || null;
+    if (!latest || latest.isRelease) return { hold: false, holdReason: '', holdReasonLabel: '' };
+    const reason = latest.reason || 'other';
+    return {
+      hold: true,
+      holdReason: reason,
+      holdReasonLabel: HOLD_REASON_LABELS[reason] || 'その他'
+    };
+  }
+
   function outreachInfo(detail) {
+    const hold = holdInfo(detail);
     const acts = arr(detail?.activities)
       .map(a => ({ a, channel: outreachChannel(a), time: activityTimeMs(a) }))
       .filter(x => x.channel)
@@ -808,7 +846,8 @@ DPRO SHOP`;
       channel: latest?.channel || '',
       sentAt: latest?.time || 0,
       nextDate: String(next?.due_date || ''),
-      nextDescription: String(next?.description || '')
+      nextDescription: String(next?.description || ''),
+      ...hold
     };
   }
 
@@ -1004,7 +1043,7 @@ DPRO SHOP`;
       .sales675-head h3{margin:0;color:#087553;font-size:17px}
       .sales675-head p{margin:5px 0 0;color:#637589;font-size:11px;line-height:1.6}
       .sales675-ver{font-size:10px;color:#477466;background:#fff;border:1px solid #cce8dd;padding:5px 8px;border-radius:999px}
-      .sales675-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+      .sales675-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:12px}
       .sales675-stat{background:#fff;border:1px solid #d9ebe3;border-radius:11px;padding:10px}
       .sales675-stat small{display:block;color:#748697;font-size:10px}
       .sales675-stat b{display:block;margin-top:3px;color:#28493d;font-size:18px}
@@ -1020,12 +1059,12 @@ DPRO SHOP`;
         display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:center;
         background:#fff;border:1px solid #dbe6ec;border-radius:12px;padding:11px 12px
       }
-      .sales675-row.sent{border-left:4px solid #45a986}.sales675-row.unsent{border-left:4px solid #e7a72d}
+      .sales675-row.sent{border-left:4px solid #45a986}.sales675-row.unsent{border-left:4px solid #e7a72d}.sales675-row.hold{border-left:4px solid #8c6bc1}
       .sales675-row strong{display:block;font-size:13px;color:#1c334b}
       .sales675-row .addr{display:block;margin-top:3px;color:#7a8998;font-size:9px;line-height:1.45}
       .sales675-meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:7px}
       .sales675-pill{display:inline-flex;align-items:center;border-radius:999px;padding:4px 7px;font-size:9px;font-weight:800;background:#eef3f7;color:#53677b}
-      .sales675-pill.ok{background:#e8f7f0;color:#087553}.sales675-pill.wait{background:#fff4dd;color:#8d5a05}
+      .sales675-pill.ok{background:#e8f7f0;color:#087553}.sales675-pill.wait{background:#fff4dd;color:#8d5a05}.sales675-pill.hold{background:#f3effa;color:#694a9a}
       .sales675-open{
         border:1px solid #afd8c9;background:#f1faf6;color:#087553;border-radius:9px;padding:8px 10px;
         font:inherit;font-size:10px;font-weight:850;cursor:pointer;white-space:nowrap
@@ -1060,16 +1099,18 @@ DPRO SHOP`;
           <h3>前回登録した候補</h3>
           <p>前回まとめて登録した店舗を、営業済み／未営業まで含めてすぐ確認できます。</p>
         </div>
-        <span class="sales675-ver">V67.5</span>
+        <span class="sales675-ver">V67.8</span>
       </div>
       <div class="sales675-summary">
         <div class="sales675-stat"><small>前回登録</small><b data-sales675-total>—</b></div>
         <div class="sales675-stat"><small>未営業</small><b data-sales675-unsent>—</b></div>
         <div class="sales675-stat"><small>営業済み</small><b data-sales675-sent>—</b></div>
+        <div class="sales675-stat"><small>保留候補</small><b data-sales675-hold>—</b></div>
       </div>
       <div class="sales675-actions">
         <button type="button" data-sales675-mode="recent">前回登録を表示</button>
         <button type="button" data-sales675-mode="unsent">未営業だけ</button>
+        <button type="button" data-sales675-mode="hold">保留候補</button>
         <button type="button" data-sales675-mode="normal">通常のパイプライン</button>
         <button type="button" class="refresh" data-sales675-refresh>状態を更新</button>
       </div>
@@ -1113,12 +1154,14 @@ DPRO SHOP`;
     if (!panel || !kanban) return;
 
     const total = cachedRows.length;
-    const unsent = cachedRows.filter(x => !x.sent).length;
-    const sent = total - unsent;
+    const hold = cachedRows.filter(x => x.hold).length;
+    const unsent = cachedRows.filter(x => !x.hold && !x.sent).length;
+    const sent = cachedRows.filter(x => !x.hold && x.sent).length;
 
     panel.querySelector('[data-sales675-total]').textContent = String(total);
     panel.querySelector('[data-sales675-unsent]').textContent = String(unsent);
     panel.querySelector('[data-sales675-sent]').textContent = String(sent);
+    panel.querySelector('[data-sales675-hold]').textContent = String(hold);
 
     $$('[data-sales675-mode]', panel).forEach(b => {
       b.classList.toggle('active', b.dataset.sales675Mode === currentMode);
@@ -1137,29 +1180,38 @@ DPRO SHOP`;
     }
 
     kanban.classList.add('sales675-hidden');
-    const rows = currentMode === 'unsent' ? cachedRows.filter(x => !x.sent) : cachedRows;
+    const rows = currentMode === 'unsent'
+      ? cachedRows.filter(x => !x.hold && !x.sent)
+      : currentMode === 'hold'
+        ? cachedRows.filter(x => x.hold)
+        : cachedRows;
 
     if (!rows.length) {
       list.innerHTML = `<div class="sales675-empty">${
         total
           ? (currentMode === 'unsent'
-              ? '前回登録した候補はすべて営業済みです。<br>次に「候補を探す」から新しい店舗を登録すると、この一覧が自動で切り替わります。'
-              : '前回登録した候補がありません。')
+              ? '前回登録した候補に、現在営業できる未営業先はありません。<br>営業済み・保留候補はこの一覧から除外されています。'
+              : currentMode === 'hold'
+                ? '前回登録した候補に保留候補はありません。'
+                : '前回登録した候補がありません。')
           : '前回登録した候補をまだ特定できません。<br>次回「候補を探す」からまとめて登録すると自動で記憶します。'
       }</div>`;
     } else {
       list.innerHTML = rows.map(r => {
-        const status = r.sent ? '営業済み' : '未営業';
+        const status = r.hold ? `保留：${r.holdReasonLabel || 'その他'}` : (r.sent ? '営業済み' : '未営業');
         const follow = r.nextDate
           ? `次回 ${fmtDate(r.nextDate)} ${r.nextDescription || '反応・返信確認'}`
           : '';
+        const rowState = r.hold ? 'hold' : (r.sent ? 'sent' : 'unsent');
+        const icon = r.hold ? '⏸' : (r.sent ? '✅' : '▶');
+        const pillState = r.hold ? 'hold' : (r.sent ? 'ok' : 'wait');
         return `
-          <div class="sales675-row ${r.sent ? 'sent' : 'unsent'}">
+          <div class="sales675-row ${rowState}">
             <div>
-              <strong>${r.sent ? '✅' : '▶'} ${esc(r.name)}</strong>
+              <strong>${icon} ${esc(r.name)}</strong>
               ${r.address ? `<span class="addr">${esc(r.address)}</span>` : ''}
               <div class="sales675-meta">
-                <span class="sales675-pill ${r.sent ? 'ok' : 'wait'}">${status}</span>
+                <span class="sales675-pill ${pillState}">${esc(status)}</span>
                 ${r.priority ? `<span class="sales675-pill">優先度 ${esc(r.priority)}</span>` : ''}
                 ${r.channel ? `<span class="sales675-pill">${esc(r.channel)}</span>` : ''}
                 ${follow ? `<span class="sales675-pill">${esc(follow)}</span>` : ''}
@@ -1173,8 +1225,10 @@ DPRO SHOP`;
     }
 
     note.textContent = currentMode === 'unsent'
-      ? `未営業 ${unsent}件だけを表示しています。店舗を開けば、そのままV67.4のCONTACT中心営業ナビで営業できます。`
-      : `前回登録した ${total}件を表示しています。営業済みは✅、未営業は▶で表示します。`;
+      ? `未営業 ${unsent}件だけを表示しています。保留候補は除外されています。店舗を開けば、そのままCONTACT中心営業ナビで営業できます。`
+      : currentMode === 'hold'
+        ? `保留候補 ${hold}件を表示しています。接触手段が見つかったら店舗詳細から保留解除できます。`
+        : `前回登録した ${total}件を表示しています。営業済みは✅、未営業は▶、保留候補は⏸で表示します。`;
   }
 
   async function refresh(force = false) {
@@ -1399,11 +1453,11 @@ DPRO SHOP`;
 
   function currentMode() {
     const v = safeGet(MODE_KEY);
-    return ['all', 'unsent', 'sent'].includes(v) ? v : 'all';
+    return ['all', 'unsent', 'sent', 'hold'].includes(v) ? v : 'all';
   }
 
   function setMode(v) {
-    const next = ['all', 'unsent', 'sent'].includes(v) ? v : 'all';
+    const next = ['all', 'unsent', 'sent', 'hold'].includes(v) ? v : 'all';
     safeSet(MODE_KEY, next);
     const sel = $('#sales676Filter');
     if (sel && sel.value !== next) sel.value = next;
@@ -1454,9 +1508,28 @@ DPRO SHOP`;
     return false;
   }
 
-  function classify(stage, hasSalesActivity) {
+  function latestHoldByProspect(activities) {
+    const latest = new Map();
+    arr(activities).forEach(a => {
+      const code = String(a?.result_code || '');
+      const meta = a?.metadata || a?.metadata_json || {};
+      const isRelease = code === 'hold_released' || (meta?.sales678 === true && meta?.hold === false);
+      const isHold = (code.startsWith('hold_') && code !== 'hold_released') || (meta?.sales678 === true && meta?.hold === true);
+      if (!isHold && !isRelease) return;
+      const id = String(a?.prospect_id || '');
+      if (!id) return;
+      const raw = a?.occurred_at || a?.activity_at || a?.created_at || a?.updated_at || '';
+      const time = Date.parse(raw) || 0;
+      const prev = latest.get(id);
+      if (!prev || time >= prev.time) latest.set(id, { hold: isHold && !isRelease, time });
+    });
+    return latest;
+  }
+
+  function classify(stage, hasSalesActivity, isHold = false) {
     const s = String(stage || '');
     if (EXCLUDED_STAGES.has(s)) return 'excluded';
+    if (isHold) return 'hold';
     if (hasSalesActivity || SENT_STAGES.has(s)) return 'sent';
     return 'unsent';
   }
@@ -1481,6 +1554,7 @@ DPRO SHOP`;
           .map(a => String(a?.prospect_id || ''))
           .filter(Boolean)
       );
+      const holdByProspect = latestHoldByProspect(activities);
 
       const next = new Map();
       prospects.forEach(p => {
@@ -1488,7 +1562,8 @@ DPRO SHOP`;
         if (!id) return;
         next.set(id, classify(
           p?.pipeline_stage,
-          activityProspectIds.has(id)
+          activityProspectIds.has(id),
+          holdByProspect.get(id)?.hold === true
         ));
       });
 
@@ -1542,6 +1617,7 @@ DPRO SHOP`;
       .sales676-card-state.sent{background:#e8f7f0;color:#087553;border-color:#c7eadc}
       .sales676-card-state.unsent{background:#fff4dd;color:#8d5a05;border-color:#f0ddb5}
       .sales676-card-state.excluded{background:#f0f2f5;color:#718092;border-color:#dde3e8}
+      .sales676-card-state.hold{background:#f3effa;color:#694a9a;border-color:#d9cdeb}
       .sales676-filter-hidden{display:none!important}
       .sales676-filter-empty{
         margin:8px;padding:18px 10px;text-align:center;border:1px dashed #d5dfe6;
@@ -1572,9 +1648,10 @@ DPRO SHOP`;
         <option value="all">全営業状態</option>
         <option value="unsent">未営業</option>
         <option value="sent">営業済み</option>
+        <option value="hold">保留候補</option>
       </select>
       <button id="sales676Refresh" type="button">状態更新</button>
-      <span class="sales676-ver">V67.6</span>
+      <span class="sales676-ver">V67.8</span>
     `;
 
     const nativeReload = $('#pipelineReload');
@@ -1633,12 +1710,13 @@ DPRO SHOP`;
 
   function stateLabel(state) {
     if (state === 'sent') return '営業済み';
+    if (state === 'hold') return '保留候補';
     if (state === 'excluded') return '対象外';
     return '未営業';
   }
 
   function decorateCard(card, state) {
-    card.classList.remove('sales676-sent', 'sales676-unsent', 'sales676-excluded');
+    card.classList.remove('sales676-sent', 'sales676-unsent', 'sales676-hold', 'sales676-excluded');
     card.classList.add(`sales676-${state}`);
 
     const foot = card.querySelector('.foot') || card;
@@ -1654,13 +1732,14 @@ DPRO SHOP`;
   }
 
   function updateCounts(cards) {
-    let all = 0, unsent = 0, sent = 0, excluded = 0;
+    let all = 0, unsent = 0, sent = 0, hold = 0, excluded = 0;
 
     cards.forEach(card => {
       all++;
       const id = String(card.dataset.prospect || '');
       const state = statusByProspect.get(id) || 'unsent';
       if (state === 'sent') sent++;
+      else if (state === 'hold') hold++;
       else if (state === 'excluded') excluded++;
       else unsent++;
     });
@@ -1668,7 +1747,7 @@ DPRO SHOP`;
     const counts = $('#sales676Counts');
     if (counts) {
       counts.innerHTML =
-        `通常パイプライン内：<b>${all}</b>件 ／ 未営業 <b>${unsent}</b> ／ 営業済み <b>${sent}</b>` +
+        `通常パイプライン内：<b>${all}</b>件 ／ 未営業 <b>${unsent}</b> ／ 営業済み <b>${sent}</b> ／ 保留 <b>${hold}</b>` +
         (excluded ? ` ／ 対象外 <b>${excluded}</b>` : '');
     }
   }
@@ -1694,7 +1773,8 @@ DPRO SHOP`;
       const show =
         mode === 'all' ||
         (mode === 'unsent' && state === 'unsent') ||
-        (mode === 'sent' && state === 'sent');
+        (mode === 'sent' && state === 'sent') ||
+        (mode === 'hold' && state === 'hold');
 
       card.classList.toggle('sales676-filter-hidden', !show);
     });
@@ -1711,7 +1791,11 @@ DPRO SHOP`;
       if (mode !== 'all' && colCards.length && !visible.length) {
         const empty = document.createElement('div');
         empty.className = 'sales676-filter-empty';
-        empty.textContent = mode === 'unsent' ? '未営業の店舗はありません' : '営業済みの店舗はありません';
+        empty.textContent = mode === 'unsent'
+          ? '未営業の店舗はありません'
+          : mode === 'hold'
+            ? '保留候補はありません'
+            : '営業済みの店舗はありません';
         col.appendChild(empty);
       }
     });
@@ -2105,8 +2189,8 @@ DPRO SHOP`;
   function patchVersion(root) {
     const chip = root?.querySelector('.sales672-ver');
     if (chip) {
-      chip.textContent = 'V67.7';
-      chip.title = '提案LP自動連動FIX';
+      chip.textContent = 'V67.8';
+      chip.title = '提案LP自動連動＋保留候補管理';
     }
   }
 
@@ -2164,5 +2248,382 @@ DPRO SHOP`;
   window.DPRO_SALES677 = Object.freeze({
     version: VERSION,
     refresh: () => patchOnce()
+  });
+})();
+
+
+/*
+ * ============================================================
+ * DPRO SALESNAVI V67.8
+ * Version: SALESNAVI-67.8-HOLD-CANDIDATE-MANAGEMENT-20260820
+ *
+ * Hold candidate management:
+ * - Adds "保留候補にする" to the CONTACT-centered sales drawer.
+ * - Reasons: 接触手段なし / チェーン・本部営業候補 / 既存システム充実 /
+ *   時期を見て再確認 / その他.
+ * - Persists hold/release using the existing prospect activity API + metadata.
+ * - Completes an active sales queue item when a prospect is put on hold.
+ * - Does NOT count a hold as "営業済み".
+ * - V67.5 "未営業だけ" excludes holds and provides a "保留候補" view.
+ * - V67.6 normal pipeline gets a formal "保留候補" filter/state.
+ * - Hold can be released later without deleting history.
+ * - No Worker / SQL / DB schema change.
+ * ============================================================
+ */
+(() => {
+  'use strict';
+
+  const VERSION = 'SALESNAVI-67.8-HOLD-CANDIDATE-MANAGEMENT-20260820';
+  const REASONS = Object.freeze({
+    no_contact: '接触手段なし',
+    chain_hq: 'チェーン・本部営業候補',
+    existing_system: '既存システム充実',
+    timing: '時期を見て再確認',
+    other: 'その他'
+  });
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  let pulseTimer = null;
+  let lastProspectId = '';
+  let loadSeq = 0;
+  const locks = new Set();
+
+  function cfg() { return window.DPRO_CONFIG || {}; }
+
+  function session() {
+    try {
+      return JSON.parse(localStorage.getItem(cfg().sessionStorageKey || 'dpro_sales_session_v3') || 'null');
+    } catch {
+      return null;
+    }
+  }
+
+  function token() { return session()?.token || ''; }
+
+  async function request(path, { method = 'GET', body = null } = {}) {
+    const headers = { Accept: 'application/json' };
+    if (body !== null) headers['Content-Type'] = 'application/json; charset=utf-8';
+    if (token()) headers.Authorization = `Bearer ${token()}`;
+    const res = await fetch(String(cfg().apiBaseUrl || '') + path, {
+      method,
+      headers,
+      body: body === null ? undefined : JSON.stringify(body),
+      credentials: 'omit',
+      cache: 'no-store'
+    });
+    let data = {};
+    try { data = await res.json(); } catch {}
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.message || data.error || `APIエラー (${res.status})`);
+    }
+    return data;
+  }
+
+  function toast(message, type = 'success') {
+    const stack = $('#toastStack');
+    if (stack) {
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = message;
+      stack.appendChild(el);
+      setTimeout(() => el.remove(), 5200);
+      return;
+    }
+    console[type === 'error' ? 'error' : 'log']('[V67.8]', message);
+  }
+
+  function activityTime(a) {
+    const raw = a?.occurred_at || a?.activity_at || a?.created_at || a?.updated_at || '';
+    const n = Date.parse(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function todayJst() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(new Date());
+    const x = Object.fromEntries(parts.map(v => [v.type, v.value]));
+    return `${x.year}-${x.month}-${x.day}`;
+  }
+
+  async function activeQueueItem(id) {
+    try {
+      const d = await request(`/api/sales-queue?date=${encodeURIComponent(todayJst())}`);
+      const items = Array.isArray(d?.queueItems) ? d.queueItems : [];
+      return items.find(q =>
+        String(q?.prospect_id || '') === String(id) &&
+        ['queued', 'planned', 'in_progress'].includes(String(q?.queue_status || 'queued'))
+      ) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function currentHold(detail) {
+    const events = (Array.isArray(detail?.activities) ? detail.activities : [])
+      .map(a => {
+        const code = String(a?.result_code || '');
+        const meta = a?.metadata || a?.metadata_json || {};
+        const isRelease = code === 'hold_released' || (meta?.sales678 === true && meta?.hold === false);
+        const isHold = (code.startsWith('hold_') && code !== 'hold_released') || (meta?.sales678 === true && meta?.hold === true);
+        if (!isHold && !isRelease) return null;
+        const reason = String(meta?.holdReason || (isHold && code.startsWith('hold_') ? code.slice(5) : ''));
+        return { isHold, isRelease, reason, time: activityTime(a) };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.time - a.time);
+
+    const latest = events[0] || null;
+    if (!latest || latest.isRelease) return { hold: false, reason: '' };
+    return { hold: true, reason: latest.reason || 'other' };
+  }
+
+  function ensureStyle() {
+    if ($('#sales678Style')) return;
+    const s = document.createElement('style');
+    s.id = 'sales678Style';
+    s.textContent = `
+      .sales678-hold-box{
+        margin-top:11px;padding:11px;border:1px solid #d8cdea;background:#f8f5fc;
+        border-radius:11px
+      }
+      .sales678-hold-head{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-bottom:7px}
+      .sales678-hold-head b{font-size:12px;color:#61458e}.sales678-hold-head span{font-size:9px;color:#806aa3}
+      .sales678-hold-help{margin:0 0 8px;color:#6f6380;font-size:10px;line-height:1.55}
+      .sales678-hold-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center}
+      .sales678-hold-row select{margin:0!important;min-height:40px}
+      .sales678-hold-btn{border:1px solid #aa93cb;background:#fff;color:#654993;border-radius:10px;padding:10px 12px;font:inherit;font-size:11px;font-weight:850;cursor:pointer;white-space:nowrap}
+      .sales678-hold-btn.active{background:#7555a4;color:#fff;border-color:#7555a4}
+      .sales678-hold-btn:disabled{opacity:.55;cursor:wait}
+      .sales678-hold-state{display:none;margin-top:8px;padding:8px 9px;border-radius:9px;background:#efe8f8;color:#62478d;font-size:10px;line-height:1.55}
+      .sales678-hold-state.show{display:block}
+      @media(max-width:640px){.sales678-hold-row{grid-template-columns:1fr}.sales678-hold-btn{width:100%}}
+    `;
+    document.head.appendChild(s);
+  }
+
+  function ensureBox(root) {
+    let box = root.querySelector('[data-sales678-hold-box]');
+    if (box) return box;
+
+    box = document.createElement('div');
+    box.className = 'sales678-hold-box';
+    box.setAttribute('data-sales678-hold-box', '1');
+    box.innerHTML = `
+      <div class="sales678-hold-head"><b>今は営業しない候補</b><span>V67.8</span></div>
+      <p class="sales678-hold-help">見込みはあるが今は送れない店舗を、未営業から外して保留候補として残します。</p>
+      <div class="sales678-hold-row">
+        <select data-sales678-reason aria-label="保留理由">
+          <option value="no_contact">接触手段なし</option>
+          <option value="chain_hq">チェーン・本部営業候補</option>
+          <option value="existing_system">既存システム充実</option>
+          <option value="timing">時期を見て再確認</option>
+          <option value="other">その他</option>
+        </select>
+        <button type="button" class="sales678-hold-btn" data-sales678-save>保留候補にする</button>
+      </div>
+      <div class="sales678-hold-state" data-sales678-state></div>
+    `;
+
+    const grid = root.querySelector('.sales672-grid');
+    if (grid) grid.insertAdjacentElement('afterend', box);
+    else root.querySelector('.sales672-policy')?.insertAdjacentElement('afterend', box);
+
+    box.addEventListener('click', e => {
+      const btn = e.target.closest('[data-sales678-save]');
+      if (!btn) return;
+      const id = String(root.dataset.prospectId || '');
+      if (!id) return;
+      const isHeld = btn.dataset.held === '1';
+      if (isHeld) releaseHold(root, id);
+      else saveHold(root, id);
+    });
+
+    return box;
+  }
+
+  function renderState(root, hold) {
+    const box = ensureBox(root);
+    const select = box.querySelector('[data-sales678-reason]');
+    const btn = box.querySelector('[data-sales678-save]');
+    const state = box.querySelector('[data-sales678-state]');
+
+    if (hold?.hold) {
+      const reason = REASONS[hold.reason] ? hold.reason : 'other';
+      select.value = reason;
+      select.disabled = true;
+      btn.dataset.held = '1';
+      btn.classList.add('active');
+      btn.textContent = '保留解除';
+      state.classList.add('show');
+      state.textContent = `保留候補として保存済み：${REASONS[reason]}`;
+    } else {
+      select.disabled = false;
+      btn.dataset.held = '0';
+      btn.classList.remove('active');
+      btn.textContent = '保留候補にする';
+      state.classList.remove('show');
+      state.textContent = '';
+    }
+  }
+
+  async function loadState(root, id) {
+    const seq = ++loadSeq;
+    try {
+      const detail = await request(`/api/prospects/${encodeURIComponent(id)}/sales-detail`);
+      if (seq !== loadSeq || $('#sales672') !== root || String(root.dataset.prospectId || '') !== id) return;
+      renderState(root, currentHold(detail));
+    } catch (e) {
+      if (seq !== loadSeq) return;
+      const state = root.querySelector('[data-sales678-state]');
+      if (state) {
+        state.classList.add('show');
+        state.textContent = `保留状態を確認できませんでした：${e.message || '通信エラー'}`;
+      }
+    }
+  }
+
+  async function saveHold(root, id) {
+    if (locks.has(id)) return;
+    const box = ensureBox(root);
+    const select = box.querySelector('[data-sales678-reason]');
+    const btn = box.querySelector('[data-sales678-save]');
+    const reason = String(select?.value || 'other');
+    const label = REASONS[reason] || REASONS.other;
+
+    if (!confirm(`${label}\n\nこの店舗を「保留候補」にしますか？\n未営業一覧から外れますが、保留候補一覧からいつでも確認できます。`)) return;
+
+    locks.add(id);
+    btn.disabled = true;
+    btn.textContent = '保存中…';
+    try {
+      const q = await activeQueueItem(id);
+      const body = {
+        activityType: 'other',
+        resultCode: `hold_${reason}`,
+        summary: `保留候補：${label}`,
+        details: `V67.8で保留候補として保存。理由：${label}`,
+        isOwnerContact: false,
+        applyRule: false,
+        completeQueue: true,
+        metadata: {
+          sales678: true,
+          version: VERSION,
+          hold: true,
+          holdReason: reason,
+          holdReasonLabel: label
+        }
+      };
+      if (q?.id) body.queueItemId = q.id;
+
+      await request(`/api/prospects/${encodeURIComponent(id)}/record-activity`, {
+        method: 'POST',
+        body
+      });
+      toast(`保留候補として保存しました：${label}`);
+      renderState(root, { hold: true, reason });
+      window.DPRO_SALES675?.refresh?.();
+      window.DPRO_SALES676?.refresh?.();
+    } catch (e) {
+      toast(e.message || '保留候補を保存できませんでした。', 'error');
+      renderState(root, { hold: false, reason: '' });
+    } finally {
+      locks.delete(id);
+      btn.disabled = false;
+    }
+  }
+
+  async function releaseHold(root, id) {
+    if (locks.has(id)) return;
+    if (!confirm('この店舗の保留を解除して、未営業候補へ戻しますか？')) return;
+
+    const box = ensureBox(root);
+    const btn = box.querySelector('[data-sales678-save]');
+    locks.add(id);
+    btn.disabled = true;
+    btn.textContent = '解除中…';
+    try {
+      await request(`/api/prospects/${encodeURIComponent(id)}/record-activity`, {
+        method: 'POST',
+        body: {
+          activityType: 'other',
+          resultCode: 'hold_released',
+          summary: '保留候補を解除',
+          details: 'V67.8で保留候補を解除し、通常の営業候補へ戻しました。',
+          isOwnerContact: false,
+          applyRule: false,
+          completeQueue: false,
+          metadata: {
+            sales678: true,
+            version: VERSION,
+            hold: false,
+            released: true
+          }
+        }
+      });
+      toast('保留を解除しました。未営業候補へ戻ります。');
+      renderState(root, { hold: false, reason: '' });
+      window.DPRO_SALES675?.refresh?.();
+      window.DPRO_SALES676?.refresh?.();
+    } catch (e) {
+      toast(e.message || '保留を解除できませんでした。', 'error');
+      await loadState(root, id);
+    } finally {
+      locks.delete(id);
+      btn.disabled = false;
+    }
+  }
+
+  function patchVersion(root) {
+    const chip = root.querySelector('.sales672-ver');
+    if (chip) {
+      chip.textContent = 'V67.8';
+      chip.title = 'CONTACT中心営業＋LP自動連動＋保留候補管理';
+    }
+  }
+
+  function pulse() {
+    const root = $('#sales672');
+    if (!root || !root.dataset.prospectId) {
+      lastProspectId = '';
+      return;
+    }
+
+    ensureStyle();
+    ensureBox(root);
+    patchVersion(root);
+    document.documentElement.dataset.sales678 = VERSION;
+
+    const id = String(root.dataset.prospectId || '');
+    if (id !== lastProspectId) {
+      lastProspectId = id;
+      renderState(root, { hold: false, reason: '' });
+      loadState(root, id);
+    }
+  }
+
+  function start() {
+    ensureStyle();
+    if (pulseTimer) clearInterval(pulseTimer);
+    pulseTimer = setInterval(pulse, 250);
+    pulse();
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start, { once: true });
+  } else {
+    start();
+  }
+
+  window.DPRO_SALES678 = Object.freeze({
+    version: VERSION,
+    refresh: () => {
+      const root = $('#sales672');
+      const id = String(root?.dataset.prospectId || '');
+      if (root && id) loadState(root, id);
+      window.DPRO_SALES675?.refresh?.();
+      window.DPRO_SALES676?.refresh?.();
+    }
   });
 })();
